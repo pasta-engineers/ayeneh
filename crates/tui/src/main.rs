@@ -10,7 +10,9 @@ use crossterm::{
     execute,
     terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
+use clap::Parser;
 use mirror_core::app::App as CoreApp;
+use mirror_cli::{Cli, run_command};
 use ratatui::{backend::CrosstermBackend, Terminal};
 
 use crate::ui::Mode;
@@ -140,6 +142,16 @@ impl App {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let cli = Cli::parse();
+
+    if cli.command.is_some() {
+        if let Err(e) = run_command(cli).await {
+            eprintln!("Error: {e}");
+            std::process::exit(1);
+        }
+        return Ok(());
+    }
+
     if let Err(e) = run_tui().await {
         eprintln!("Error: {e}");
         std::process::exit(1);

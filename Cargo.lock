@@ -900,7 +900,9 @@ dependencies = [
 name = "mirror-tui"
 version = "0.2.5"
 dependencies = [
+ "clap",
  "crossterm",
+ "mirror-cli",
  "mirror-core",
  "ratatui",
  "tokio",

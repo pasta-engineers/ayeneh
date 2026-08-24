@@ -8,7 +8,9 @@ name = "mirror-tui"
 path = "src/main.rs"
 
 [dependencies]
+mirror-cli = { path = "../cli" }
 mirror-core = { path = "../core" }
 ratatui = { workspace = true }
 crossterm = { workspace = true }
 tokio = { workspace = true }
+clap = { workspace = true }
