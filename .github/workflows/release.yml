@@ -18,11 +18,12 @@ jobs:
     - uses: actions/checkout@v4
 
     - name: Build release
-      run: cargo build --release
+      run: cargo build --release --workspace
 
     - name: Upload binary to release
       uses: softprops/action-gh-release@v2
       with:
         files: |
-          ${{ matrix.os == 'windows-latest' && 'target/release/mirror.exe' || 'target/release/mirror' }}
+          ${{ matrix.os == 'windows-latest' && 'target/release/mirror-tui.exe' || 'target/release/mirror-tui' }}
+          ${{ matrix.os == 'windows-latest' && 'target/release/mirror-cli.exe' || 'target/release/mirror-cli' }}
         fail_on_unmatched_files: true
