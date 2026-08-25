@@ -122,10 +122,7 @@ impl App {
         let pm = self.core.selection.to_package_manager();
         let pending_status = match &self.core.config {
             Some(config) if self.core.benchmark_index < config.mirrors.len() => {
-                Some(format!(
-                    "Testing {}...",
-                    config.mirrors[self.core.benchmark_index]
-                ))
+                Some("Testing ...".to_string())
             }
             _ => None,
         };
