@@ -33,7 +33,7 @@ Read `ARCHITECTURE.md` for the detailed data flow and benchmark semantics.
 ## Crate Boundaries
 
 - `mirror-core` owns reusable domain and application logic. Its modules are
-  `app`, `benchmark`, `mirror`, `pip`, `report`, and `scheduler`.
+  `app`, `benchmark`, `config`, `mirror`, `pip`, `report`, and `scheduler`.
 - `mirror-cli` owns `clap` parsing, command dispatch, stdout tables, and CLI
   error/exit behavior. Its command handlers are exposed from `src/lib.rs` so
   the TUI can reuse them.
@@ -61,19 +61,18 @@ Mirror discovery is static; the application does not scrape or discover new
 mirrors automatically. The TUI's add-mirror action appends directly to the
 selected JSON configuration.
 
-Data directory resolution uses this order:
+Data directory resolution uses `MIRROR_DATA_DIR` when set, otherwise it
+defaults to `./data`. The directory must contain
+`pypi.json` and `npm.json`.
 
-1. `MIRROR_DATA_DIR`, when set
-2. A `data/` directory found by walking upward from the executable
-3. A `data/` directory found by walking upward from the current directory
-4. `data/` relative to the current directory
-
-Reports use the same lookup strategy and honor `MIRROR_REPORTS_DIR` first.
+Reports honor `MIRROR_REPORTS_DIR` first, otherwise falling back to a
+`reports/` directory found near the executable or working directory.
 
 ### Benchmarking
 
-- Each mirror gets three sequential attempts.
-- Each attempt has a 15-second `reqwest` client timeout.
+- Each mirror gets three sequential attempts by default (`MIRROR_ATTEMPTS`).
+- Each attempt has a 15-second `reqwest` client timeout by default
+  (`MIRROR_TIMEOUT_SECS`).
 - PyPI resolves an archive from the PEP 503 simple index.
 - npm resolves `dist.tarball` from the registry's `/latest` metadata.
 - Successful attempt latencies are averaged; failed attempts reduce the

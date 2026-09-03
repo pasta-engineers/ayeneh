@@ -46,7 +46,8 @@ The project is a Cargo workspace with three crates:
 |------------------|--------------------------------------------------------------|
 | `app.rs`         | Core application state (selection, results, benchmark loop)  |
 | `benchmark.rs`   | Downloads a real package from each mirror and measures latency |
-| `mirror.rs`      | Loads the sample package name + mirror URL list from `data/*.json` |
+| `config.rs`      | Reads env-driven tuning (timeout, attempts, schedule interval) |
+| `mirror.rs`      | Loads the sample package name + mirror URL list from the registry dir |
 | `pip.rs`         | Installs pip packages via configured mirrors with fallback  |
 | `report.rs`      | Builds and saves JSON reports to `reports/`                   |
 | `scheduler.rs`   | Infinite benchmark/report/sleep loop                          |
@@ -90,16 +91,15 @@ differ only in how they present results to the user.
 
 ## Data Files
 
-Mirror lists live in `data/pypi.json` and `data/npm.json`. The
-`mirror-core::mirror` module resolves these paths by:
+Mirror lists live in `pypi.json` and `npm.json` under the configured registry
+directory. The `MIRROR_DATA_DIR` environment variable overrides the default
+directory `./data`.
 
-1. Checking the `MIRROR_DATA_DIR` environment variable.
-2. Walking up from the current executable looking for a `data/` directory
-   containing both `pypi.json` and `npm.json`.
-3. Walking up from the current working directory as a fallback.
+Both files retain the same shape and define the sample `package` and ordered
+`mirrors` list for their package manager.
 
-Reports are written under `reports/`, resolved the same way (with the
-`MIRROR_REPORTS_DIR` environment variable as an override).
+Reports are written under `reports/`. `MIRROR_REPORTS_DIR` can override the
+report output directory.
 
 ## Benchmark Process
 
@@ -109,8 +109,9 @@ workflow rather than a bare HTTP ping.
 
 For each mirror URL:
 
-1. Build a `reqwest::Client` with a 15-second timeout.
-2. Run 3 attempts, one at a time. Each attempt:
+1. Build a `reqwest::Client` with a `MIRROR_TIMEOUT_SECS`-second timeout
+   (default 15).
+2. Run `MIRROR_ATTEMPTS` attempts, one at a time (default 3). Each attempt:
    1. Resolves the package's direct download URL on that mirror:
       - **PyPI**: fetches the PEP 503 "simple" index page
         (`{mirror}{package}/`) and extracts the first `href` pointing at
@@ -124,7 +125,7 @@ For each mirror URL:
    4. Records elapsed time via `Instant`, covering the resolve + download
       + delete round trip.
 3. Average the latency across successful attempts.
-4. If all 3 attempts fail (timeout, DNS error, connection refused, no
+4. If all attempts fail (timeout, DNS error, connection refused, no
    archive found, malformed metadata), the mirror is marked
    `timed_out = true` with `success_rate = 0`.
 5. Results are sorted by latency ascending, with timed-out mirrors sorted
@@ -152,6 +153,20 @@ entries, and the fastest reachable mirror. The report is serialized with
 
 `scheduler.rs` runs an infinite loop: for each package manager (pypi, then
 npm), load mirrors, benchmark, and save a report. After both have run, it
-sleeps for one hour (`tokio::time::sleep`) and repeats. There is no cron
+sleeps for `MIRROR_SCHEDULE_INTERVAL_SECS` seconds (default one hour, via
+`tokio::time::sleep`) and repeats. There is no cron
 integration or daemonization — the process must stay running in the
 foreground (or under a process manager of the user's choosing).
+
+## Configuration
+
+`config.rs` resolves env-driven tuning in `mirror-core`, applying the default
+for any value that is unset, empty, non-numeric, or not positive.
+
+| Variable                          | Meaning                              | Default |
+|-----------------------------------|--------------------------------------|---------|
+| `MIRROR_DATA_DIR`                 | Directory holding the registry JSON  | `./data` |
+| `MIRROR_REPORTS_DIR`              | Directory for generated reports      | auto-detected `reports/`  |
+| `MIRROR_TIMEOUT_SECS`             | Per-attempt HTTP timeout             | `15`                      |
+| `MIRROR_ATTEMPTS`                 | Attempts per mirror                  | `3`                       |
+| `MIRROR_SCHEDULE_INTERVAL_SECS`   | Delay between scheduler cycles       | `3600`                    |

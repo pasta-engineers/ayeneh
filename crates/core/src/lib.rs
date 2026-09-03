@@ -5,6 +5,7 @@
 
 pub mod app;
 pub mod benchmark;
+pub mod config;
 pub mod mirror;
 pub mod pip;
 pub mod report;

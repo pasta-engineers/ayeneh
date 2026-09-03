@@ -119,8 +119,9 @@ https://pypi.org/simple/
 
 ## Mirror Lists
 
-`data/pypi.json` and `data/npm.json` each define the sample `package` to
-download during benchmarking and the list of `mirrors` to test it against:
+`pypi.json` and `npm.json` each define the sample `package` to download during
+benchmarking and the list of `mirrors` to test it against. By default, the
+program reads them from `./data`:
 
 ```json
 {
@@ -133,6 +134,27 @@ download during benchmarking and the list of `mirrors` to test it against:
 }
 ```
 
-Edit these files to add or remove mirrors, or to change the package used
+Set `MIRROR_DATA_DIR` when the registry files are stored elsewhere:
+
+```bash
+MIRROR_DATA_DIR=/opt/mirror/registries mirror-cli run pypi
+```
+
+Edit these JSON files to add or remove mirrors, or to change the package used
 for benchmarking. Mirror lists are configured statically — no network
 scraping is performed to discover them.
+
+## Environment Variables
+
+Runtime behavior can be tuned without rebuilding:
+
+| Variable                          | Meaning                                | Default                   |
+|-----------------------------------|----------------------------------------|---------------------------|
+| `MIRROR_DATA_DIR`                 | Directory holding `pypi.json`/`npm.json` | `./data` |
+| `MIRROR_REPORTS_DIR`              | Directory for generated reports        | auto-detected `reports/`  |
+| `MIRROR_TIMEOUT_SECS`             | Per-attempt HTTP timeout (seconds)     | `15`                      |
+| `MIRROR_ATTEMPTS`                 | Benchmark attempts per mirror          | `3`                       |
+| `MIRROR_SCHEDULE_INTERVAL_SECS`   | Delay between scheduler cycles (seconds) | `3600`                    |
+
+The numeric variables fall back to their default if unset or given a
+non-numeric, zero, or negative value.

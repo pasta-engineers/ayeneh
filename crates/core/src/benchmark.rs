@@ -8,12 +8,10 @@
 //! metadata + file-transfer path that `pip install` / `npm install` would
 //! use.
 
+use crate::config::Config;
 use crate::mirror::PackageManager;
 use serde::{Deserialize, Serialize};
 use std::time::{Duration, Instant};
-
-const TIMEOUT_SECS: u64 = 15;
-const ATTEMPTS: u32 = 3;
 
 /// Any error that can occur while resolving or downloading a package file.
 /// Benchmarking never propagates these; they simply mark an attempt as
@@ -29,15 +27,18 @@ pub struct BenchmarkResult {
     pub timed_out: bool,
 }
 
-/// Benchmarks a single mirror by downloading `package` from it `ATTEMPTS`
-/// times, averaging the latency of the successful downloads.
+/// Benchmarks a single mirror by downloading `package` from it a configurable
+/// number of times (`MIRROR_ATTEMPTS`), averaging the latency of the
+/// successful downloads.
 ///
 /// Always returns a [`BenchmarkResult`]; failures and timeouts are recorded
 /// on the result rather than propagated as an error, so that a single bad
 /// mirror never stops the overall benchmark run.
 pub async fn benchmark_mirror(pm: PackageManager, package: &str, mirror: &str) -> BenchmarkResult {
+    let cfg = Config::from_env();
+    let attempts = cfg.attempts;
     let client = match reqwest::Client::builder()
-        .timeout(Duration::from_secs(TIMEOUT_SECS))
+        .timeout(Duration::from_secs(cfg.timeout_secs))
         .build()
     {
         Ok(c) => c,
@@ -54,7 +55,7 @@ pub async fn benchmark_mirror(pm: PackageManager, package: &str, mirror: &str) -
     let mut successes: u32 = 0;
     let mut total_latency: u128 = 0;
 
-    for _ in 0..ATTEMPTS {
+    for _ in 0..attempts {
         let start = Instant::now();
         match download_and_discard_package(&client, pm, package, mirror).await {
             Ok(()) => {
@@ -67,7 +68,7 @@ pub async fn benchmark_mirror(pm: PackageManager, package: &str, mirror: &str) -
         }
     }
 
-    let success_rate = (successes as f32 / ATTEMPTS as f32) * 100.0;
+    let success_rate = (successes as f32 / attempts as f32) * 100.0;
     let average_latency_ms = if successes > 0 {
         total_latency / successes as u128
     } else {

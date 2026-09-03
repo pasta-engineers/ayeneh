@@ -52,7 +52,7 @@ impl PackageManager {
     }
 
     /// Returns the relative file path for this package manager's mirror list
-    /// within the `data/` directory.
+    /// within the configured registry directory.
     pub fn data_file_name(&self) -> &'static str {
         match self {
             PackageManager::PyPi => "pypi.json",
@@ -61,7 +61,7 @@ impl PackageManager {
     }
 
     /// Returns the on-disk file path for this package manager's mirror list,
-    /// resolved relative to the workspace root.
+    /// resolved from the configured registry directory.
     pub fn data_file(&self) -> PathBuf {
         data_dir().join(self.data_file_name())
     }
@@ -87,63 +87,73 @@ pub struct MirrorConfig {
     pub mirrors: Vec<String>,
 }
 
-/// Returns the path to the `data/` directory, resolved relative to the
-/// workspace root.
+/// Returns the directory containing the registry configuration files.
 ///
 /// Resolution order:
 /// 1. `MIRROR_DATA_DIR` environment variable (if set).
-/// 2. Walk up from the current executable looking for a `data/` directory
-///    containing both `pypi.json` and `npm.json`.
-/// 3. Walk up from the current working directory as a fallback.
+/// 2. `./data`.
 fn data_dir() -> PathBuf {
-    if let Ok(custom) = std::env::var("MIRROR_DATA_DIR") {
-        return PathBuf::from(custom);
-    }
-
-    if let Some(dir) = find_data_dir_from_exe() {
-        return dir;
-    }
-
-    if let Some(dir) = find_data_dir_from_cwd() {
-        return dir;
-    }
-
-    PathBuf::from("data")
+    std::env::var("MIRROR_DATA_DIR")
+        .map(PathBuf::from)
+        .unwrap_or_else(|_| PathBuf::from("./data"))
 }
 
-/// Walks up from the current executable looking for a `data/` directory
-/// containing both expected data files.
-fn find_data_dir_from_exe() -> Option<PathBuf> {
-    let exe = std::env::current_exe().ok()?;
-    let mut dir = exe.parent()?;
-    loop {
-        let candidate = dir.join("data");
-        if is_data_dir(&candidate) {
-            return Some(candidate);
-        }
-        dir = dir.parent()?;
-    }
-}
+#[cfg(test)]
+mod tests {
+    use super::data_dir;
+    use std::path::PathBuf;
+    use std::sync::{Mutex, OnceLock};
 
-/// Walks up from the current working directory looking for a `data/`
-/// directory.
-fn find_data_dir_from_cwd() -> Option<PathBuf> {
-    let mut dir = std::env::current_dir().ok()?;
-    loop {
-        let candidate = dir.join("data");
-        if is_data_dir(&candidate) {
-            return Some(candidate);
+    fn env_lock() -> &'static Mutex<()> {
+        static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+        LOCK.get_or_init(|| Mutex::new(()))
+    }
+
+    struct DataDirEnv(Option<std::ffi::OsString>);
+
+    impl DataDirEnv {
+        fn set(value: impl Into<std::ffi::OsString>) -> Self {
+            let previous = std::env::var_os("MIRROR_DATA_DIR");
+            let value = value.into();
+            unsafe { std::env::set_var("MIRROR_DATA_DIR", value) };
+            Self(previous)
         }
-        if !dir.pop() {
-            return None;
+
+        fn remove() -> Self {
+            let previous = std::env::var_os("MIRROR_DATA_DIR");
+            unsafe { std::env::remove_var("MIRROR_DATA_DIR") };
+            Self(previous)
         }
     }
-}
 
-/// Returns true if `path` looks like the project's `data/` directory
-/// (contains both expected mirror files).
-fn is_data_dir(path: &Path) -> bool {
-    path.join("pypi.json").is_file() && path.join("npm.json").is_file()
+    impl Drop for DataDirEnv {
+        fn drop(&mut self) {
+            match self.0.take() {
+                Some(value) => unsafe { std::env::set_var("MIRROR_DATA_DIR", value) },
+                None => unsafe { std::env::remove_var("MIRROR_DATA_DIR") },
+            }
+        }
+    }
+
+    #[test]
+    fn data_dir_defaults_to_system_registry_directory() {
+        let _lock = env_lock()
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let _env = DataDirEnv::remove();
+
+        assert_eq!(data_dir(), PathBuf::from("/opt/mirror/registries"));
+    }
+
+    #[test]
+    fn data_dir_uses_mirror_data_dir_when_set() {
+        let _lock = env_lock()
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let _env = DataDirEnv::set("/custom/registries");
+
+        assert_eq!(data_dir(), PathBuf::from("/custom/registries"));
+    }
 }
 
 /// Loads the mirror configuration (sample package + mirror URLs) for the
