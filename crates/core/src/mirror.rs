@@ -142,7 +142,7 @@ mod tests {
             .unwrap_or_else(|poisoned| poisoned.into_inner());
         let _env = DataDirEnv::remove();
 
-        assert_eq!(data_dir(), PathBuf::from("/opt/mirror/registries"));
+        assert_eq!(data_dir(), PathBuf::from("./data"));
     }
 
     #[test]
