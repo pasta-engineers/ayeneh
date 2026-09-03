@@ -158,3 +158,26 @@ Runtime behavior can be tuned without rebuilding:
 
 The numeric variables fall back to their default if unset or given a
 non-numeric, zero, or negative value.
+
+### Docker
+
+A Python-based image is provided that ships the prebuilt `mirror-cli` binary
+alongside the mirror registry config, so it can be used directly as a base for
+installing packages or benchmarking. Build it from the repository root (a
+release binary must already exist):
+
+```bash
+cargo build --release -p mirror-cli
+docker build -f docker/Dockerfile -t mirror-cli .
+```
+
+Run it, or extend it in your own Dockerfile to install packages from mirrors:
+
+```bash
+docker run --rm mirror-cli mirror-cli pip install requests
+```
+
+```dockerfile
+FROM mirror-cli
+RUN mirror-cli pip install -r requirements.txt
+```

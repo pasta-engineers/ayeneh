@@ -1,0 +1,11 @@
+FROM python:3.12-slim
+
+WORKDIR /app
+
+COPY target/release/mirror-cli /usr/local/bin/mirror-cli
+COPY data ./data
+
+ENV MIRROR_DATA_DIR=/app/data \
+    MIRROR_REPORTS_DIR=/app/reports
+
+RUN mkdir -p /app/reports
