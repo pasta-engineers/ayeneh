@@ -55,6 +55,12 @@ or install from requirements file:
 mirror-cli pip install -r requirements.txt
 ```
 
+Install npm packages from mirrors:
+
+```bash
+mirror-cli npm install <package>
+```
+
 Run a one-off benchmark from the command line:
 
 ```bash

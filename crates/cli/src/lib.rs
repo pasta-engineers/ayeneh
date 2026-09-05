@@ -5,7 +5,7 @@ use clap::{Parser, Subcommand};
 use mirror_core::benchmark::{benchmark_all, BenchmarkResult};
 use mirror_core::mirror::{load_mirrors, PackageManager};
 use mirror_core::report::Report;
-use mirror_core::{pip, scheduler};
+use mirror_core::{npm, pip, scheduler};
 
 /// Mirror Benchmark: benchmark package registry mirrors and find the fastest one.
 #[derive(Parser)]
@@ -31,6 +31,11 @@ pub enum Commands {
         #[command(subcommand)]
         command: PipCommand,
     },
+    /// Install npm packages via npm mirrors, falling back to the next mirror on failure.
+    Npm {
+        #[command(subcommand)]
+        command: NpmCommand,
+    },
 }
 
 #[derive(Subcommand)]
@@ -38,6 +43,16 @@ pub enum PipCommand {
     /// Install a package or a -r requirements file.
     Install {
         /// pip install arguments: package names, `-r FILE`, options.
+        #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
+        args: Vec<String>,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum NpmCommand {
+    /// Install one or more packages.
+    Install {
+        /// npm install arguments: package names, options.
         #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
         args: Vec<String>,
     },
@@ -114,6 +129,9 @@ pub async fn run_command(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
         Some(Commands::Pip {
             command: PipCommand::Install { args },
         }) => pip::install(&args).await,
+        Some(Commands::Npm {
+            command: NpmCommand::Install { args },
+        }) => npm::install(&args).await,
         None => Ok(()),
     }
 }

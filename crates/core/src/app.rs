@@ -90,12 +90,13 @@ impl App {
             self.running = false;
             self.config = None;
             self.benchmark_index = 0;
-            self.results.sort_by(|a, b| match (a.timed_out, b.timed_out) {
-                (true, true) => std::cmp::Ordering::Equal,
-                (true, false) => std::cmp::Ordering::Greater,
-                (false, true) => std::cmp::Ordering::Less,
-                (false, false) => a.average_latency_ms.cmp(&b.average_latency_ms),
-            });
+            self.results
+                .sort_by(|a, b| match (a.timed_out, b.timed_out) {
+                    (true, true) => std::cmp::Ordering::Equal,
+                    (true, false) => std::cmp::Ordering::Greater,
+                    (false, true) => std::cmp::Ordering::Less,
+                    (false, false) => a.average_latency_ms.cmp(&b.average_latency_ms),
+                });
             return true;
         }
 
@@ -110,12 +111,13 @@ impl App {
             self.running = false;
             self.config = None;
             self.benchmark_index = 0;
-            self.results.sort_by(|a, b| match (a.timed_out, b.timed_out) {
-                (true, true) => std::cmp::Ordering::Equal,
-                (true, false) => std::cmp::Ordering::Greater,
-                (false, true) => std::cmp::Ordering::Less,
-                (false, false) => a.average_latency_ms.cmp(&b.average_latency_ms),
-            });
+            self.results
+                .sort_by(|a, b| match (a.timed_out, b.timed_out) {
+                    (true, true) => std::cmp::Ordering::Equal,
+                    (true, false) => std::cmp::Ordering::Greater,
+                    (false, true) => std::cmp::Ordering::Less,
+                    (false, false) => a.average_latency_ms.cmp(&b.average_latency_ms),
+                });
             return true;
         }
 

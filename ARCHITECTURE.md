@@ -48,6 +48,7 @@ The project is a Cargo workspace with three crates:
 | `benchmark.rs`   | Downloads a real package from each mirror and measures latency |
 | `config.rs`      | Reads env-driven tuning (timeout, attempts, schedule interval) |
 | `mirror.rs`      | Loads the sample package name + mirror URL list from the registry dir |
+| `npm.rs`         | Installs npm packages via configured mirrors with fallback  |
 | `pip.rs`         | Installs pip packages via configured mirrors with fallback  |
 | `report.rs`      | Builds and saves JSON reports to `reports/`                   |
 | `scheduler.rs`   | Infinite benchmark/report/sleep loop                          |
