@@ -1,0 +1,31 @@
+name: Python Package Management Support
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  pip-install:
+    strategy:
+      matrix:
+        python-version: [ "3.10", "3.11", "3.12" ]
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Build mirror-cli
+      run: cargo build --release --workspace
+
+    - name: Install test requirements via mirror-cli
+      run: ./target/release/mirror-cli pip install -r requirements-test.txt
+
+    - name: Verify installed package
+      run: python -c "import requests, django; print('requests:', requests.__version__); print('django:',   django.__version__)"
