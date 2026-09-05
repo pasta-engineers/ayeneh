@@ -129,11 +129,7 @@ async fn download_and_discard_package(
         .rsplit('/')
         .find(|segment| !segment.is_empty())
         .unwrap_or("mirror-download.tmp");
-    let path = std::env::temp_dir().join(format!(
-        "mirror-{}-{}",
-        std::process::id(),
-        file_name
-    ));
+    let path = std::env::temp_dir().join(format!("mirror-{}-{}", std::process::id(), file_name));
 
     tokio::fs::write(&path, &bytes).await?;
     tokio::fs::remove_file(&path).await?;

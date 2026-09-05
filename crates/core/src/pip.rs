@@ -43,10 +43,20 @@ pub async fn install(args: &[String]) -> Result<(), Box<dyn std::error::Error>> 
 /// Resolves the Python interpreter to use: `python` if present, else
 /// `python3`. Errors out if neither exists.
 async fn resolve_interpreter() -> Result<&'static str, Box<dyn std::error::Error>> {
-    if Command::new("python").arg("--version").output().await.is_ok() {
+    if Command::new("python")
+        .arg("--version")
+        .output()
+        .await
+        .is_ok()
+    {
         return Ok("python");
     }
-    if Command::new("python3").arg("--version").output().await.is_ok() {
+    if Command::new("python3")
+        .arg("--version")
+        .output()
+        .await
+        .is_ok()
+    {
         return Ok("python3");
     }
     Err("Neither 'python' nor 'python3' found on PATH; install Python to use pip install.".into())
