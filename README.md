@@ -1,6 +1,6 @@
 # Mirror CLI
 
-A terminal tool that benchmarks package registry mirrors, install packages from mirrors, reporting, all with both simple TUI and CLI.
+A terminal tool that installs packages from mirrors, benchmarks, and reports results, all with both simple TUI and CLI.
 
 ## Features
 
@@ -36,7 +36,23 @@ Get help:
 ```bash
 mirror-cli --help
 mirror-cli pip --help
+mirror-cli npm --help
 ```
+
+### Environment Variables
+
+Runtime behavior can be tuned without rebuilding:
+
+| Variable                          | Meaning                                | Default                   |
+|-----------------------------------|----------------------------------------|---------------------------|
+| `MIRROR_DATA_DIR`                 | Directory holding `pypi.json`/`npm.json` | `./data` |
+| `MIRROR_REPORTS_DIR`              | Directory for generated reports        | auto-detected `reports/`  |
+| `MIRROR_TIMEOUT_SECS`             | Per-attempt HTTP timeout (seconds)     | `15`                      |
+| `MIRROR_ATTEMPTS`                 | Benchmark attempts per mirror          | `3`                       |
+| `MIRROR_SCHEDULE_INTERVAL_SECS`   | Delay between scheduler cycles (seconds) | `3600`                    |
+
+The numeric variables fall back to their default if unset or given a
+non-numeric, zero, or negative value.
 
 Launch the TUI:
 
