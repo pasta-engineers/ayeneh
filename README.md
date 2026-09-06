@@ -1,4 +1,4 @@
-# Mirror CLI
+# Ayeneh
 
 A terminal tool that installs packages from mirrors, benchmarks, and reports results, all with both simple TUI and CLI.
 
