@@ -190,7 +190,7 @@ release binary must already exist):
 
 ```bash
 cargo build --release -p mirror-cli
-docker build -f docker/Dockerfile -t mirror-cli .
+docker build -f docker/Dockerfile.python -t mirror-cli .
 ```
 
 Run it, or extend it in your own Dockerfile to install packages from mirrors:
@@ -202,4 +202,23 @@ docker run --rm mirror-cli mirror-cli pip install requests
 ```dockerfile
 FROM mirror-cli
 RUN mirror-cli pip install -r requirements.txt
+```
+
+A Node.js-based image is provided for npm. Build it the same way (a release
+binary must already exist):
+
+```bash
+docker build -f docker/Dockerfile.npm -t mirror-cli-npm .
+```
+
+Run it, or extend it in your own Dockerfile to install packages from npm
+mirrors:
+
+```bash
+docker run --rm mirror-cli-npm mirror-cli npm install lodash
+```
+
+```dockerfile
+FROM mirror-cli-npm
+RUN mirror-cli npm install lodash express
 ```
