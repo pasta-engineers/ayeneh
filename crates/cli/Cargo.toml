@@ -1,10 +1,10 @@
 [package]
-name = "mirror-cli"
+name = "ayeneh-cli"
 version = { workspace = true }
 edition = { workspace = true }
 
 [[bin]]
-name = "mirror-cli"
+name = "ayeneh-cli"
 path = "src/main.rs"
 
 [dependencies]

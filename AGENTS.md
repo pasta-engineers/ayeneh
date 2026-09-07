@@ -11,8 +11,8 @@ Runtime networked: benchmark resolves + downloads real package archive from each
 ```text
 crates/
   core/       Shared library: mirrors, benchmarking, pip, reports, scheduler
-  cli/        `mirror-cli` command parsing and command handlers
-  tui/        `mirror-tui` Ratatui/Crossterm interface
+  cli/        `ayeneh-cli` command parsing and command handlers
+  tui/        `ayeneh-tui` Ratatui/Crossterm interface
 data/         Static mirror configuration for PyPI and npm
 reports/      Generated JSON reports (ignored by Git, except `.gitkeep`)
 .github/      CI and release workflows
@@ -27,13 +27,13 @@ Read `ARCHITECTURE.md` for data flow + benchmark semantics.
 ## Crate Boundaries
 
 - `mirror-core`: reusable domain + app logic. Modules: `app`, `benchmark`, `config`, `mirror`, `pip`, `report`, `scheduler`.
-- `mirror-cli`: `clap` parsing, command dispatch, stdout tables, CLI error/exit behavior. Handlers exposed from `src/lib.rs` for TUI reuse.
-- `mirror-tui`: terminal setup, keyboard events, UI state, rendering. Wraps `mirror_core::app::App`; can dispatch CLI commands when args supplied.
+- `ayeneh-cli`: `clap` parsing, command dispatch, stdout tables, CLI error/exit behavior. Handlers exposed from `src/lib.rs` for TUI reuse.
+- `ayeneh-tui`: terminal setup, keyboard events, UI state, rendering. Wraps `mirror_core::app::App`; can dispatch CLI commands when args supplied.
 
 Dependency rules:
 
 - Keep `mirror-core` independent of `ratatui` + `crossterm`.
-- Keep `mirror-cli` independent of `ratatui` + `crossterm`.
+- Keep `ayeneh-cli` independent of `ratatui` + `crossterm`.
 - Shared behavior in `mirror-core`, not frontends.
 - TUI-only state + rendering in `crates/tui`.
 
@@ -66,7 +66,7 @@ Benchmarks use real network; failures may stem from DNS, connectivity, mirror me
 
 ### Reports and Generated Files
 
-`mirror-cli report` + `mirror-cli schedule` write JSON to `reports/YYYY-MM-DD_HH-MM.json`. Report JSON git-ignored; do not force generated reports into commits unless asked.
+`ayeneh-cli report` + `ayeneh-cli schedule` write JSON to `reports/YYYY-MM-DD_HH-MM.json`. Report JSON git-ignored; do not force generated reports into commits unless asked.
 
 ## Common Commands
 
@@ -88,7 +88,7 @@ Example commands in the [Makefile](Makefile).
 
 - `.github/workflows/rust.yml` builds and tests on pushes and pull requests to `main`.
 - `.github/workflows/release.yml` builds release binaries for Ubuntu and Windows when a GitHub release is published.
-- Release artifacts are `mirror-cli` and `mirror-tui` (with `.exe` on Windows).
+- Release artifacts are `ayeneh-cli` and `ayeneh-tui` (with `.exe` on Windows).
 
 Keep workspace dependency versions in the root `Cargo.toml` and use workspace dependencies from individual crate manifests where possible.
 

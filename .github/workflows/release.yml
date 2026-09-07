@@ -24,6 +24,6 @@ jobs:
       uses: softprops/action-gh-release@v2
       with:
         files: |
-          ${{ matrix.os == 'windows-latest' && 'target/release/mirror-tui.exe' || 'target/release/mirror-tui' }}
-          ${{ matrix.os == 'windows-latest' && 'target/release/mirror-cli.exe' || 'target/release/mirror-cli' }}
+          ${{ matrix.os == 'windows-latest' && 'target/release/ayeneh-tui.exe' || 'target/release/ayeneh-tui' }}
+          ${{ matrix.os == 'windows-latest' && 'target/release/ayeneh-cli.exe' || 'target/release/ayeneh-cli' }}
         fail_on_unmatched_files: true

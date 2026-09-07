@@ -2,7 +2,7 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-COPY target/release/mirror-cli /usr/local/bin/mirror-cli
+COPY target/release/ayeneh-cli /usr/local/bin/ayeneh-cli
 COPY data ./data
 
 ENV MIRROR_DATA_DIR=/app/data \

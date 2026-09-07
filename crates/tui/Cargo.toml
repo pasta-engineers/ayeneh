@@ -1,14 +1,14 @@
 [package]
-name = "mirror-tui"
+name = "ayeneh-tui"
 version = { workspace = true }
 edition = { workspace = true }
 
 [[bin]]
-name = "mirror-tui"
+name = "ayeneh-tui"
 path = "src/main.rs"
 
 [dependencies]
-mirror-cli = { path = "../cli" }
+ayeneh-cli = { path = "../cli" }
 mirror-core = { path = "../core" }
 ratatui = { workspace = true }
 crossterm = { workspace = true }

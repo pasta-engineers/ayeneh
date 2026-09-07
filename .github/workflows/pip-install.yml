@@ -21,11 +21,11 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
-    - name: Build mirror-cli
+    - name: Build ayeneh-cli
       run: cargo build --release --workspace
 
-    - name: Install test requirements via mirror-cli
-      run: ./target/release/mirror-cli pip install -r requirements-test.txt
+    - name: Install test requirements via ayeneh-cli
+      run: ./target/release/ayeneh-cli pip install -r requirements-test.txt
 
     - name: Verify installed package
       run: python -c "import requests, django; print('requests:', requests.__version__); print('django:',   django.__version__)"

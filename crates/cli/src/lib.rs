@@ -9,7 +9,7 @@ use mirror_core::{npm, pip, scheduler};
 
 /// Mirror Benchmark: benchmark package registry mirrors and find the fastest one.
 #[derive(Parser)]
-#[command(name = "mirror-cli", version, about)]
+#[command(name = "ayeneh-cli", version, about)]
 pub struct Cli {
     #[command(subcommand)]
     pub command: Option<Commands>,

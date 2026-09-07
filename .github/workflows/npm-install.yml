@@ -23,8 +23,8 @@ jobs:
     - name: Install Rust toolchain
       uses: dtolnay/rust-toolchain@stable
 
-    - name: Build mirror-cli
-      run: cargo build --release -p mirror-cli
+    - name: Build ayeneh-cli
+      run: cargo build --release -p ayeneh-cli
 
     - name: Setup Node ${{ matrix.node }}
       uses: actions/setup-node@v4
@@ -36,9 +36,9 @@ jobs:
         mkdir -p /tmp/npmtest
         cat > /tmp/npmtest/package.json <<'EOF'
         {
-          "name": "mirror-cli-example",
+          "name": "ayeneh-cli-example",
           "version": "1.0.0",
-          "description": "Example project to test mirror-cli npm install",
+          "description": "Example project to test ayeneh-cli npm install",
           "main": "index.js",
           "dependencies": {
             "lodash": "^4.17.21",
@@ -53,7 +53,7 @@ jobs:
       env:
         MIRROR_DATA_DIR: ${{ github.workspace }}/data
       run: |
-        "${{ github.workspace }}/target/release/mirror-cli" npm install
+        "${{ github.workspace }}/target/release/ayeneh-cli" npm install
 
     - name: Verify installed packages work
       working-directory: /tmp/npmtest

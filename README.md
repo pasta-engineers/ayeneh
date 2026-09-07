@@ -27,16 +27,16 @@ cargo build
 
 The project ships two binaries:
 
-* `mirror-cli` — non-interactive CLI, suitable for CI pipelines, Docker
+* `ayeneh-cli` — non-interactive CLI, suitable for CI pipelines, Docker
   images, and shell scripting.
-* `mirror-tui` — interactive Ratatui application.
+* `ayeneh-tui` — interactive Ratatui application.
 
 Get help:
 
 ```bash
-mirror-cli --help
-mirror-cli pip --help
-mirror-cli npm --help
+ayeneh-cli --help
+ayeneh-cli pip --help
+ayeneh-cli npm --help
 ```
 
 ### Environment Variables
@@ -57,43 +57,43 @@ non-numeric, zero, or negative value.
 Launch the TUI:
 
 ```bash
-mirror-tui
+ayeneh-tui
 ```
 
 Install python packages from mirrors:
 
 ```bash
-mirror-cli pip install <package>
+ayeneh-cli pip install <package>
 ```
 or install from requirements file:
 
 ```bash
-mirror-cli pip install -r requirements.txt
+ayeneh-cli pip install -r requirements.txt
 ```
 
 Install npm packages from mirrors:
 
 ```bash
-mirror-cli npm install <package>
+ayeneh-cli npm install <package>
 ```
 
 Run a one-off benchmark from the command line:
 
 ```bash
-mirror-cli run pypi
-mirror-cli run npm
+ayeneh-cli run pypi
+ayeneh-cli run npm
 ```
 
 Generate a JSON report for both package managers:
 
 ```bash
-mirror-cli report
+ayeneh-cli report
 ```
 
 Run the hourly scheduler (keeps benchmarking forever):
 
 ```bash
-mirror-cli schedule
+ayeneh-cli schedule
 ```
 
 ## Example TUI
@@ -159,7 +159,7 @@ program reads them from `./data`:
 Set `MIRROR_DATA_DIR` when the registry files are stored elsewhere:
 
 ```bash
-MIRROR_DATA_DIR=/opt/mirror/registries mirror-cli run pypi
+MIRROR_DATA_DIR=/opt/mirror/registries ayeneh-cli run pypi
 ```
 
 Edit these JSON files to add or remove mirrors, or to change the package used
@@ -168,42 +168,42 @@ scraping is performed to discover them.
 
 ### Docker
 
-A Python-based image is provided that ships the prebuilt `mirror-cli` binary
+A Python-based image is provided that ships the prebuilt `ayeneh-cli` binary
 alongside the mirror registry config, so it can be used directly as a base for
 installing packages or benchmarking. Build it from the repository root (a
 release binary must already exist):
 
 ```bash
-cargo build --release -p mirror-cli
-docker build -f docker/Dockerfile.python -t mirror-cli .
+cargo build --release -p ayeneh-cli
+docker build -f docker/Dockerfile.python -t ayeneh-cli .
 ```
 
 Run it, or extend it in your own Dockerfile to install packages from mirrors:
 
 ```bash
-docker run --rm mirror-cli mirror-cli pip install requests
+docker run --rm ayeneh-cli ayeneh-cli pip install requests
 ```
 
 ```dockerfile
-FROM mirror-cli
-RUN mirror-cli pip install -r requirements.txt
+FROM ayeneh-cli
+RUN ayeneh-cli pip install -r requirements.txt
 ```
 
 A Node.js-based image is provided for npm. Build it the same way (a release
 binary must already exist):
 
 ```bash
-docker build -f docker/Dockerfile.npm -t mirror-cli-npm .
+docker build -f docker/Dockerfile.npm -t ayeneh-cli-npm .
 ```
 
 Run it, or extend it in your own Dockerfile to install packages from npm
 mirrors:
 
 ```bash
-docker run --rm mirror-cli-npm mirror-cli npm install lodash
+docker run --rm ayeneh-cli-npm ayeneh-cli npm install lodash
 ```
 
 ```dockerfile
-FROM mirror-cli-npm
-RUN mirror-cli npm install lodash express
+FROM ayeneh-cli-npm
+RUN ayeneh-cli npm install lodash express
 ```

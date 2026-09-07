@@ -7,8 +7,8 @@ The project is a Cargo workspace with three crates:
 | Crate         | Binary        | Responsibility                                                   |
 |---------------|---------------|------------------------------------------------------------------|
 | `mirror-core` | (library)     | Shared application/domain logic (benchmarking, mirrors, reports, scheduler, pip) |
-| `mirror-cli`  | `mirror-cli`  | Non-interactive CLI built on `clap` + `mirror-core`              |
-| `mirror-tui`  | `mirror-tui`  | Interactive Ratatui application built on `ratatui` + `crossterm` + `mirror-core` |
+| `ayeneh-cli`  | `ayeneh-cli`  | Non-interactive CLI built on `clap` + `mirror-core`              |
+| `ayeneh-tui`  | `ayeneh-tui`  | Interactive Ratatui application built on `ratatui` + `crossterm` + `mirror-core` |
 
 ```text
                   ┌──────────────────┐
@@ -24,7 +24,7 @@ The project is a Cargo workspace with three crates:
                  ┌─────────┴─────────┐
                  │                   │
         ┌────────▼────────┐  ┌───────▼────────┐
-        │   mirror-cli    │  │   mirror-tui   │
+        │   ayeneh-cli    │  │   ayeneh-tui   │
         │                 │  │                │
         │ clap            │  │ ratatui        │
         │ stdout          │  │ crossterm      │
@@ -35,8 +35,8 @@ The project is a Cargo workspace with three crates:
 ## Dependency Rules
 
 * `mirror-core` MUST NOT depend on `ratatui` or `crossterm`.
-* `mirror-cli` MUST NOT depend on `ratatui` or `crossterm`.
-* `mirror-tui` depends on `mirror-core`, `ratatui`, and `crossterm`.
+* `ayeneh-cli` MUST NOT depend on `ratatui` or `crossterm`.
+* `ayeneh-tui` depends on `mirror-core`, `ratatui`, and `crossterm`.
 
 ## Modules
 
@@ -53,13 +53,13 @@ The project is a Cargo workspace with three crates:
 | `report.rs`      | Builds and saves JSON reports to `reports/`                   |
 | `scheduler.rs`   | Infinite benchmark/report/sleep loop                          |
 
-### `mirror-cli` (binary)
+### `ayeneh-cli` (binary)
 
 | Module          | Responsibility                                              |
 |------------------|--------------------------------------------------------------|
 | `main.rs`        | CLI parsing (`clap`) and dispatch to `mirror-core` commands  |
 
-### `mirror-tui` (binary)
+### `ayeneh-tui` (binary)
 
 | Module          | Responsibility                                              |
 |------------------|--------------------------------------------------------------|
@@ -74,10 +74,10 @@ flowchart TD
     B --> C[benchmark.rs: benchmark_all]
     C --> J[Download + delete package per mirror]
     J --> D{Which frontend?}
-    D -->|mirror-cli run| E[Print table to stdout]
-    D -->|mirror-cli report| H[report.rs: Report::save]
-    D -->|mirror-cli schedule| I[scheduler.rs loop]
-    D -->|mirror-tui| F[core::App state]
+    D -->|ayeneh-cli run| E[Print table to stdout]
+    D -->|ayeneh-cli report| H[report.rs: Report::save]
+    D -->|ayeneh-cli schedule| I[scheduler.rs loop]
+    D -->|ayeneh-tui| F[core::App state]
     F --> G[ui.rs: draw]
     I --> C
     I --> H
