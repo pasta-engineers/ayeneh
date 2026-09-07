@@ -10,13 +10,13 @@ A terminal tool that installs packages from mirrors, benchmarks, and reports res
 
 ## Installation
 
-Pickup desired binary from the [releases](https://github.com/erfan-rfmhr/mirror-tester/releases)
+Pickup desired binary from the [releases](https://github.com/pasta-engineers/ayeneh/releases)
 Or build from source:
 
 - Make sure you have Rust (stable) installed via [rustup](https://rustup.rs)
 
 ```bash
-git clone <https://github.com/erfan-rfmhr/mirror-tester>
+git clone <https://github.com/pasta-engineers/ayeneh.git>
 cd mirror-tester
 make
 # or
