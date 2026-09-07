@@ -8,6 +8,6 @@ name = "ayeneh-cli"
 path = "src/main.rs"
 
 [dependencies]
-mirror-core = { path = "../core" }
+ayeneh-core = { path = "../core" }
 clap = { workspace = true }
 tokio = { workspace = true }

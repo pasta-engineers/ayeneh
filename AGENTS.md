@@ -26,15 +26,15 @@ Read `ARCHITECTURE.md` for data flow + benchmark semantics.
 
 ## Crate Boundaries
 
-- `mirror-core`: reusable domain + app logic. Modules: `app`, `benchmark`, `config`, `mirror`, `pip`, `report`, `scheduler`.
+- `ayeneh-core`: reusable domain + app logic. Modules: `app`, `benchmark`, `config`, `mirror`, `pip`, `report`, `scheduler`.
 - `ayeneh-cli`: `clap` parsing, command dispatch, stdout tables, CLI error/exit behavior. Handlers exposed from `src/lib.rs` for TUI reuse.
-- `ayeneh-tui`: terminal setup, keyboard events, UI state, rendering. Wraps `mirror_core::app::App`; can dispatch CLI commands when args supplied.
+- `ayeneh-tui`: terminal setup, keyboard events, UI state, rendering. Wraps `ayeneh_core::app::App`; can dispatch CLI commands when args supplied.
 
 Dependency rules:
 
-- Keep `mirror-core` independent of `ratatui` + `crossterm`.
+- Keep `ayeneh-core` independent of `ratatui` + `crossterm`.
 - Keep `ayeneh-cli` independent of `ratatui` + `crossterm`.
-- Shared behavior in `mirror-core`, not frontends.
+- Shared behavior in `ayeneh-core`, not frontends.
 - TUI-only state + rendering in `crates/tui`.
 
 ## Important Runtime Details

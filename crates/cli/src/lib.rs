@@ -2,10 +2,10 @@
 //! (e.g. the TUI) can reuse the same command handlers.
 
 use clap::{Parser, Subcommand};
-use mirror_core::benchmark::{benchmark_all, BenchmarkResult};
-use mirror_core::mirror::{load_mirrors, PackageManager};
-use mirror_core::report::Report;
-use mirror_core::{npm, pip, scheduler};
+use ayeneh_core::benchmark::{benchmark_all, BenchmarkResult};
+use ayeneh_core::mirror::{load_mirrors, PackageManager};
+use ayeneh_core::report::Report;
+use ayeneh_core::{npm, pip, scheduler};
 
 /// Mirror Benchmark: benchmark package registry mirrors and find the fastest one.
 #[derive(Parser)]

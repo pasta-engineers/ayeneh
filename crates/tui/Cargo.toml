@@ -9,7 +9,7 @@ path = "src/main.rs"
 
 [dependencies]
 ayeneh-cli = { path = "../cli" }
-mirror-core = { path = "../core" }
+ayeneh-core = { path = "../core" }
 ratatui = { workspace = true }
 crossterm = { workspace = true }
 tokio = { workspace = true }

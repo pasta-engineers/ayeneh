@@ -6,13 +6,13 @@ The project is a Cargo workspace with three crates:
 
 | Crate         | Binary        | Responsibility                                                   |
 |---------------|---------------|------------------------------------------------------------------|
-| `mirror-core` | (library)     | Shared application/domain logic (benchmarking, mirrors, reports, scheduler, pip) |
-| `ayeneh-cli`  | `ayeneh-cli`  | Non-interactive CLI built on `clap` + `mirror-core`              |
-| `ayeneh-tui`  | `ayeneh-tui`  | Interactive Ratatui application built on `ratatui` + `crossterm` + `mirror-core` |
+| `ayeneh-core` | (library)     | Shared application/domain logic (benchmarking, mirrors, reports, scheduler, pip) |
+| `ayeneh-cli`  | `ayeneh-cli`  | Non-interactive CLI built on `clap` + `ayeneh-core`              |
+| `ayeneh-tui`  | `ayeneh-tui`  | Interactive Ratatui application built on `ratatui` + `crossterm` + `ayeneh-core` |
 
 ```text
                   ┌──────────────────┐
-                  │   mirror-core    │
+                  │   ayeneh-core    │
                   │                  │
                   │ benchmark logic  │
                   │ mirror logic     │
@@ -34,13 +34,13 @@ The project is a Cargo workspace with three crates:
 
 ## Dependency Rules
 
-* `mirror-core` MUST NOT depend on `ratatui` or `crossterm`.
+* `ayeneh-core` MUST NOT depend on `ratatui` or `crossterm`.
 * `ayeneh-cli` MUST NOT depend on `ratatui` or `crossterm`.
-* `ayeneh-tui` depends on `mirror-core`, `ratatui`, and `crossterm`.
+* `ayeneh-tui` depends on `ayeneh-core`, `ratatui`, and `crossterm`.
 
 ## Modules
 
-### `mirror-core` (library)
+### `ayeneh-core` (library)
 
 | Module          | Responsibility                                              |
 |------------------|--------------------------------------------------------------|
@@ -57,13 +57,13 @@ The project is a Cargo workspace with three crates:
 
 | Module          | Responsibility                                              |
 |------------------|--------------------------------------------------------------|
-| `main.rs`        | CLI parsing (`clap`) and dispatch to `mirror-core` commands  |
+| `main.rs`        | CLI parsing (`clap`) and dispatch to `ayeneh-core` commands  |
 
 ### `ayeneh-tui` (binary)
 
 | Module          | Responsibility                                              |
 |------------------|--------------------------------------------------------------|
-| `main.rs`        | Terminal setup/cleanup, event loop, wraps `mirror-core::App` |
+| `main.rs`        | Terminal setup/cleanup, event loop, wraps `ayeneh-core::App` |
 | `ui.rs`          | Renders the TUI with `ratatui`                                |
 
 ## Data Flow
@@ -87,7 +87,7 @@ flowchart TD
 the package manager's JSON file, so every downstream consumer knows both
 which mirrors to test and which package to actually download from them.
 
-The CLI and TUI both call into the same `mirror-core` operations; they
+The CLI and TUI both call into the same `ayeneh-core` operations; they
 differ only in how they present results to the user.
 
 ## Data Files
@@ -161,7 +161,7 @@ foreground (or under a process manager of the user's choosing).
 
 ## Configuration
 
-`config.rs` resolves env-driven tuning in `mirror-core`, applying the default
+`config.rs` resolves env-driven tuning in `ayeneh-core`, applying the default
 for any value that is unset, empty, non-numeric, or not positive.
 
 | Variable                          | Meaning                              | Default |

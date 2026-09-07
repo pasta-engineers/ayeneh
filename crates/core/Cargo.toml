@@ -1,5 +1,5 @@
 [package]
-name = "mirror-core"
+name = "ayeneh-core"
 version = { workspace = true }
 edition = { workspace = true }
 

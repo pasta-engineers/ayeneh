@@ -11,7 +11,7 @@ use crossterm::{
     terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
 use clap::Parser;
-use mirror_core::app::App as CoreApp;
+use ayeneh_core::app::App as CoreApp;
 use ayeneh_cli::{Cli, run_command};
 use ratatui::{backend::CrosstermBackend, Terminal};
 

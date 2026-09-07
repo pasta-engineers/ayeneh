@@ -81,21 +81,32 @@ checksum = "f2032f911046de80f0a198e0901378627c33f59ea0ac00e363d481118bd70a53"
 
 [[package]]
 name = "ayeneh-cli"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
+ "ayeneh-core",
  "clap",
- "mirror-core",
+ "tokio",
+]
+
+[[package]]
+name = "ayeneh-core"
+version = "0.4.1"
+dependencies = [
+ "chrono",
+ "reqwest",
+ "serde",
+ "serde_json",
  "tokio",
 ]
 
 [[package]]
 name = "ayeneh-tui"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "ayeneh-cli",
+ "ayeneh-core",
  "clap",
  "crossterm",
- "mirror-core",
  "ratatui",
  "tokio",
 ]
@@ -896,17 +907,6 @@ dependencies = [
  "log",
  "wasi",
  "windows-sys 0.61.2",
-]
-
-[[package]]
-name = "mirror-core"
-version = "0.4.0"
-dependencies = [
- "chrono",
- "reqwest",
- "serde",
- "serde_json",
- "tokio",
 ]
 
 [[package]]

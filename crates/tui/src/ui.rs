@@ -1,6 +1,6 @@
 //! Terminal UI rendering.
 
-use mirror_core::app::{Selection};
+use ayeneh_core::app::{Selection};
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
