@@ -89,6 +89,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "ayeneh-tui"
+version = "0.4.0"
+dependencies = [
+ "ayeneh-cli",
+ "clap",
+ "crossterm",
+ "mirror-core",
+ "ratatui",
+ "tokio",
+]
+
+[[package]]
 name = "base64"
 version = "0.22.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -894,18 +906,6 @@ dependencies = [
  "reqwest",
  "serde",
  "serde_json",
- "tokio",
-]
-
-[[package]]
-name = "ayeneh-tui"
-version = "0.4.0"
-dependencies = [
- "ayeneh-cli",
- "clap",
- "crossterm",
- "mirror-core",
- "ratatui",
  "tokio",
 ]
 

@@ -12,7 +12,7 @@ use crossterm::{
 };
 use clap::Parser;
 use mirror_core::app::App as CoreApp;
-use mirror_cli::{Cli, run_command};
+use ayeneh_cli::{Cli, run_command};
 use ratatui::{backend::CrosstermBackend, Terminal};
 
 use crate::ui::Mode;
