@@ -6,7 +6,7 @@ use std::io;
 use std::time::Duration;
 
 use ayeneh_cli::{run_command, Cli};
-use ayeneh_core::app::App as CoreApp;
+use ayeneh_core::{app::App as CoreApp, mirror::load_mirrors};
 use clap::Parser;
 use crossterm::{
     event::{self, Event, KeyCode, KeyEventKind},
@@ -16,6 +16,25 @@ use crossterm::{
 use ratatui::{backend::CrosstermBackend, Terminal};
 
 use crate::ui::Mode;
+
+const DEFAULT_STATUS: &str = "Keys: ";
+
+
+// Which section is currently active.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ActiveSection {
+    PackageManagers,
+    Results,
+}
+
+impl ActiveSection {
+    pub fn toggle(self) -> Self {
+        match self {
+            ActiveSection::PackageManagers => ActiveSection::Results,
+            ActiveSection::Results => ActiveSection::PackageManagers,
+        }
+    }
+}
 
 /// The TUI's application state: wraps the core [`CoreApp`] and adds UI-only
 /// fields (input mode, current text input, cursor position, status text).
@@ -27,19 +46,22 @@ pub struct App {
     pub input: String,
     pub cursor: usize,
     pub error: Option<String>,
+    pub active_section: ActiveSection,
+    pub selected_mirror: usize,
 }
 
 impl App {
     fn new() -> Self {
         App {
             core: CoreApp::new(),
-            status: "Press [Enter] to run a benchmark, [up/down] to switch package manager."
-                .to_string(),
+            status: DEFAULT_STATUS.to_string(),
             should_quit: false,
             mode: Mode::Normal,
             input: String::new(),
             cursor: 0,
             error: None,
+            active_section: ActiveSection::PackageManagers,
+            selected_mirror: 0,
         }
     }
 
@@ -55,7 +77,7 @@ impl App {
         self.mode = Mode::Normal;
         self.cursor = 0;
         self.input.clear();
-        self.status = "Press [Enter] to run a benchmark, [up/down] to switch package manager, [a] to add a mirror.".to_string();
+        self.status = DEFAULT_STATUS.to_string();
         self.error = None;
     }
 
@@ -109,6 +131,54 @@ impl App {
         );
         self.mode = Mode::Normal;
         self.error = None;
+        Ok(())
+    }
+
+    fn mirror_count(&self) -> Result<usize, String> {
+        let pm = self.core.selection.to_package_manager();
+        load_mirrors(pm)
+            .map(|config| config.mirrors.len())
+            .map_err(|e| format!("Failed to load mirrors: {e}"))
+    }
+
+    fn selected_mirror_url(&self) -> Result<Option<String>, String> {
+        let pm = self.core.selection.to_package_manager();
+        let config = load_mirrors(pm).map_err(|e| format!("Failed to load mirrors: {e}"))?;
+        Ok(config.mirrors.get(self.selected_mirror).cloned())
+    }
+
+    fn move_mirror_selection(&mut self, down: bool) -> Result<(), String> {
+        let count = self.mirror_count()?;
+        if count == 0 {
+            self.selected_mirror = 0;
+        } else if down {
+            self.selected_mirror = (self.selected_mirror + 1).min(count - 1);
+        } else {
+            self.selected_mirror = self.selected_mirror.saturating_sub(1);
+        }
+        Ok(())
+    }
+
+    fn start_selected_benchmark(&mut self) -> Result<(), String> {
+        let Some(mirror) = self.selected_mirror_url()? else {
+            return Err("No mirror selected.".to_string());
+        };
+        self.core.start_single_benchmark(&mirror)?;
+        self.error = None;
+        self.status = format!("Benchmarking {mirror}...");
+        Ok(())
+    }
+
+    fn remove_selected_mirror(&mut self) -> Result<(), String> {
+        let Some(mirror) = self.selected_mirror_url()? else {
+            return Err("No mirror selected.".to_string());
+        };
+        self.core.remove_mirror(&mirror)?;
+        self.selected_mirror = self
+            .selected_mirror
+            .min(self.mirror_count()?.saturating_sub(1));
+        self.error = None;
+        self.status = format!("Removed mirror {mirror}.");
         Ok(())
     }
 
@@ -223,14 +293,36 @@ async fn run_app_loop(
                 } else {
                     match key.code {
                         KeyCode::Char('q') => app.should_quit = true,
-                        KeyCode::Up | KeyCode::Down => {
-                            app.core.selection = app.core.selection.toggle();
-                            app.core.results.clear();
-                        }
-                        KeyCode::Enter => {
-                            app.start_benchmark();
+                        KeyCode::Up | KeyCode::Down => match app.active_section {
+                            ActiveSection::PackageManagers => {
+                                app.core.selection = app.core.selection.toggle();
+                                app.core.results.clear();
+                                app.selected_mirror = 0;
+                            }
+                            ActiveSection::Results => {
+                                if let Err(e) = app.move_mirror_selection(key.code == KeyCode::Down)
+                                {
+                                    app.error = Some(e);
+                                }
+                            }
+                        },
+                        KeyCode::Enter => match app.active_section {
+                            ActiveSection::PackageManagers => app.start_benchmark(),
+                            ActiveSection::Results => {
+                                if let Err(e) = app.start_selected_benchmark() {
+                                    app.error = Some(e);
+                                }
+                            }
+                        },
+                        KeyCode::Char('d') if app.active_section == ActiveSection::Results => {
+                            if let Err(e) = app.remove_selected_mirror() {
+                                app.error = Some(e);
+                            }
                         }
                         KeyCode::Char('a') => app.enter_input(),
+                        KeyCode::BackTab => {
+                            app.active_section = app.active_section.toggle();
+                        }
                         _ => {}
                     }
                 }

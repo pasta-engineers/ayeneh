@@ -1,7 +1,7 @@
 //! Application state and operations.
 
 use crate::benchmark::{benchmark_mirror, BenchmarkResult};
-use crate::mirror::{add_mirror, load_mirrors, MirrorConfig, PackageManager};
+use crate::mirror::{add_mirror, load_mirrors, remove_mirror, MirrorConfig, PackageManager};
 
 /// Which package manager is currently selected.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -77,6 +77,21 @@ impl App {
         }
     }
 
+    /// Starts a benchmark for one mirror without clearing previous results.
+    pub fn start_single_benchmark(&mut self, mirror: &str) -> Result<(), String> {
+        let pm = self.selection.to_package_manager();
+        let mut config = load_mirrors(pm).map_err(|e| format!("Failed to load mirrors: {e}"))?;
+        if !config.mirrors.iter().any(|candidate| candidate == mirror) {
+            return Err("Mirror is no longer available.".to_string());
+        }
+
+        config.mirrors = vec![mirror.to_string()];
+        self.config = Some(config);
+        self.benchmark_index = 0;
+        self.running = true;
+        Ok(())
+    }
+
     /// Benchmarks the next pending mirror. Returns `true` when all mirrors
     /// have been benchmarked (or no config loaded). Call repeatedly with a
     /// redraw between each call for live progress.
@@ -104,6 +119,7 @@ impl App {
         let mirror = &config.mirrors[self.benchmark_index];
 
         let result = benchmark_mirror(pm, &config.package, mirror).await;
+        self.results.retain(|existing| existing.name != result.name);
         self.results.push(result);
         self.benchmark_index += 1;
 
@@ -128,6 +144,14 @@ impl App {
     pub fn add_mirror(&mut self, url: &str) -> Result<(), String> {
         let pm = self.selection.to_package_manager();
         add_mirror(pm, url).map_err(|e| format!("Failed to save mirror: {e}"))?;
+        Ok(())
+    }
+
+    /// Removes a mirror URL and its stale benchmark result.
+    pub fn remove_mirror(&mut self, url: &str) -> Result<(), String> {
+        let pm = self.selection.to_package_manager();
+        remove_mirror(pm, url).map_err(|e| format!("Failed to remove mirror: {e}"))?;
+        self.results.retain(|result| result.name != url);
         Ok(())
     }
 }

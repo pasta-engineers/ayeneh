@@ -180,3 +180,13 @@ pub fn add_mirror(pm: PackageManager, mirror: &str) -> Result<(), MirrorError> {
     fs::write(&path, content)?;
     Ok(())
 }
+
+/// Removes a mirror URL from the given package manager's mirror list.
+pub fn remove_mirror(pm: PackageManager, mirror: &str) -> Result<(), MirrorError> {
+    let path = pm.data_file();
+    let mut config = load_mirrors_from(&path)?;
+    config.mirrors.retain(|candidate| candidate != mirror);
+    let content = serde_json::to_string_pretty(&config)?;
+    fs::write(&path, content)?;
+    Ok(())
+}

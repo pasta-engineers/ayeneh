@@ -5,11 +5,11 @@ use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
-    widgets::{Block, Borders, Cell, Paragraph, Row, Table},
+    widgets::{Block, Borders, Cell, Paragraph, Row, Table, TableState},
     Frame,
 };
 
-use crate::App;
+use crate::{ActiveSection, App};
 
 /// Draws the entire application UI into the given frame.
 pub fn draw(frame: &mut Frame, app: &App) {
@@ -80,10 +80,16 @@ fn draw_menu(frame: &mut Frame, area: Rect, app: &App) {
         Line::from(Span::styled(format!("{npm_prefix}npm"), npm_style)),
     ];
 
+    let border_style = if app.active_section == ActiveSection::PackageManagers {
+        Style::default().fg(Color::Yellow)
+    } else {
+        Style::default()
+    };
     let menu = Paragraph::new(lines).block(
         Block::default()
             .title("Package Manager")
-            .borders(Borders::ALL),
+            .borders(Borders::ALL)
+            .border_style(border_style),
     );
     frame.render_widget(menu, area);
 }
@@ -96,70 +102,64 @@ fn draw_results(frame: &mut Frame, area: Rect, app: &App) {
     ])
     .style(Style::default().add_modifier(Modifier::BOLD));
 
-    let mut rows: Vec<Row> = if app.core.results.is_empty() {
-        let pm = app.core.selection.to_package_manager();
-        if let Ok(config) = ayeneh_core::mirror::load_mirrors(pm) {
-            config
-                .mirrors
-                .iter()
-                .map(|m| {
-                    Row::new(vec![
-                        Cell::from(m.clone()),
-                        Cell::from("N/A"),
-                        Cell::from("N/A"),
-                    ])
-                    .style(Style::default().fg(Color::DarkGray))
-                })
-                .collect()
-        } else {
-            Vec::new()
-        }
-    } else {
-        app.core
-            .results
-            .iter()
-            .map(|r| {
-                let latency = if r.timed_out {
-                    "timeout".to_string()
-                } else {
-                    r.average_latency_ms.to_string()
-                };
-                let success = format!("{:.0}%", r.success_rate);
-
-                let style = if r.timed_out {
-                    Style::default().fg(Color::Red)
-                } else {
-                    Style::default().fg(Color::Green)
-                };
-
-                Row::new(vec![
-                    Cell::from(r.name.clone()),
-                    Cell::from(latency),
-                    Cell::from(success),
+    let pm = app.core.selection.to_package_manager();
+    let mirrors = ayeneh_core::mirror::load_mirrors(pm)
+        .map(|config| config.mirrors)
+        .unwrap_or_default();
+    let pending = app
+        .core
+        .config
+        .as_ref()
+        .and_then(|config| config.mirrors.get(app.core.benchmark_index));
+    let rows: Vec<Row> = mirrors
+        .iter()
+        .map(|mirror| {
+            if pending == Some(mirror) {
+                return Row::new(vec![
+                    Cell::from(mirror.clone()),
+                    Cell::from("testing"),
+                    Cell::from(""),
                 ])
-                .style(style)
-            })
-            .collect()
-    };
-
-    if app.core.running {
-        if let Some(config) = &app.core.config {
-            if app.core.benchmark_index < config.mirrors.len() {
-                let pending = &config.mirrors[app.core.benchmark_index];
-                let testing_style = Style::default()
-                    .fg(Color::Yellow)
-                    .add_modifier(Modifier::BOLD);
-                rows.push(
-                    Row::new(vec![
-                        Cell::from(format!("(testing {})", pending)),
-                        Cell::from(""),
-                        Cell::from(""),
-                    ])
-                    .style(testing_style),
+                .style(
+                    Style::default()
+                        .fg(Color::Yellow)
+                        .add_modifier(Modifier::BOLD),
                 );
             }
-        }
-    }
+
+            match app
+                .core
+                .results
+                .iter()
+                .find(|result| result.name == *mirror)
+            {
+                Some(result) => {
+                    let latency = if result.timed_out {
+                        "timeout".to_string()
+                    } else {
+                        result.average_latency_ms.to_string()
+                    };
+                    let style = if result.timed_out {
+                        Style::default().fg(Color::Red)
+                    } else {
+                        Style::default().fg(Color::Green)
+                    };
+                    Row::new(vec![
+                        Cell::from(mirror.clone()),
+                        Cell::from(latency),
+                        Cell::from(format!("{:.0}%", result.success_rate)),
+                    ])
+                    .style(style)
+                }
+                None => Row::new(vec![
+                    Cell::from(mirror.clone()),
+                    Cell::from("N/A"),
+                    Cell::from("N/A"),
+                ])
+                .style(Style::default().fg(Color::DarkGray)),
+            }
+        })
+        .collect();
 
     let widths = [
         Constraint::Percentage(60),
@@ -167,11 +167,30 @@ fn draw_results(frame: &mut Frame, area: Rect, app: &App) {
         Constraint::Percentage(20),
     ];
 
+    let has_rows = !rows.is_empty();
+    let border_style = if app.active_section == ActiveSection::Results {
+        Style::default().fg(Color::Yellow)
+    } else {
+        Style::default()
+    };
     let table = Table::new(rows, widths)
         .header(header)
-        .block(Block::default().title("Results").borders(Borders::ALL));
+        .highlight_symbol("> ")
+        .highlight_style(Style::default().add_modifier(Modifier::REVERSED))
+        .block(
+            Block::default()
+                .title("Results  [Enter] Test  [d] Delete")
+                .borders(Borders::ALL)
+                .border_style(border_style),
+        );
+    let selected = if has_rows && app.active_section == ActiveSection::Results {
+        Some(app.selected_mirror)
+    } else {
+        None
+    };
+    let mut state = TableState::default().with_selected(selected);
 
-    frame.render_widget(table, area);
+    frame.render_stateful_widget(table, area, &mut state);
 }
 
 fn draw_fastest(frame: &mut Frame, area: Rect, app: &App) {
@@ -188,7 +207,7 @@ fn draw_fastest(frame: &mut Frame, area: Rect, app: &App) {
 
 fn draw_status(frame: &mut Frame, area: Rect, app: &App) {
     let help = format!(
-        "{}   [q] Quit   [Enter] Run Benchmark   [up/down] Switch   [a] Add Mirror",
+        "{}   [q] Quit   [Enter] Run/Test   [up/down] Navigate   [Shift+Tab] Change Section   [a] Add Mirror",
         app.status
     );
     let widget = Paragraph::new(help).block(Block::default().borders(Borders::ALL));
