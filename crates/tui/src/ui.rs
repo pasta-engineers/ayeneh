@@ -1,6 +1,6 @@
 //! Terminal UI rendering.
 
-use ayeneh_core::app::{Selection};
+use ayeneh_core::app::Selection;
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
@@ -23,6 +23,7 @@ pub fn draw(frame: &mut Frame, app: &App) {
             Constraint::Min(6),    // results table
             Constraint::Length(3), // fastest mirror
             Constraint::Length(3), // status / help
+            Constraint::Length(3), // error box
         ])
         .split(area);
 
@@ -36,6 +37,8 @@ pub fn draw(frame: &mut Frame, app: &App) {
     } else {
         draw_status(frame, chunks[4], app);
     }
+
+    draw_error(frame, chunks[5], app);
 }
 
 fn draw_title(frame: &mut Frame, area: Rect) {
@@ -184,6 +187,14 @@ fn draw_input(frame: &mut Frame, area: Rect, app: &App) {
     frame.render_widget(widget, area);
 
     frame.set_cursor_position((area.x + 1 + app.cursor as u16, area.y + 1));
+}
+
+fn draw_error(frame: &mut Frame, area: Rect, app: &App) {
+    let err_msg = app.error.as_deref().unwrap_or("");
+    let widget = Paragraph::new(err_msg)
+        .style(Style::default().fg(Color::Red))
+        .block(Block::default().title("Error Log").borders(Borders::ALL));
+    frame.render_widget(widget, area);
 }
 
 // Local Mode enum (kept inside the TUI crate since it only affects UI state).

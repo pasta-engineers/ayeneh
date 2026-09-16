@@ -5,14 +5,14 @@ mod ui;
 use std::io;
 use std::time::Duration;
 
+use ayeneh_cli::{run_command, Cli};
+use ayeneh_core::app::App as CoreApp;
+use clap::Parser;
 use crossterm::{
     event::{self, Event, KeyCode, KeyEventKind},
     execute,
-    terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
+    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use clap::Parser;
-use ayeneh_core::app::App as CoreApp;
-use ayeneh_cli::{Cli, run_command};
 use ratatui::{backend::CrosstermBackend, Terminal};
 
 use crate::ui::Mode;
@@ -26,6 +26,7 @@ pub struct App {
     pub mode: Mode,
     pub input: String,
     pub cursor: usize,
+    pub error: Option<String>,
 }
 
 impl App {
@@ -38,6 +39,7 @@ impl App {
             mode: Mode::Normal,
             input: String::new(),
             cursor: 0,
+            error: None,
         }
     }
 
@@ -45,8 +47,8 @@ impl App {
         self.mode = Mode::Input;
         self.input.clear();
         self.cursor = 0;
-        self.status =
-            "Type a mirror URL, [Enter] to save, [Esc] to cancel.".to_string();
+        self.status = "Type a mirror URL, [Enter] to save, [Esc] to cancel.".to_string();
+        self.error = None;
     }
 
     fn cancel_input(&mut self) {
@@ -54,6 +56,7 @@ impl App {
         self.cursor = 0;
         self.input.clear();
         self.status = "Press [Enter] to run a benchmark, [up/down] to switch package manager, [a] to add a mirror.".to_string();
+        self.error = None;
     }
 
     fn input_char(&mut self, c: char) {
@@ -100,13 +103,18 @@ impl App {
         }
 
         self.core.add_mirror(&url)?;
-        self.status = format!("Added mirror {url} to {}.", self.core.selection.to_package_manager().name());
+        self.status = format!(
+            "Added mirror {url} to {}.",
+            self.core.selection.to_package_manager().name()
+        );
         self.mode = Mode::Normal;
+        self.error = None;
         Ok(())
     }
 
     /// Marks a benchmark run as starting, loading mirror config.
     fn start_benchmark(&mut self) {
+        self.error = None;
         match self.core.start_benchmark() {
             Ok(()) => {
                 self.status = "Benchmarking...".to_string();
@@ -202,7 +210,7 @@ async fn run_app_loop(
                         KeyCode::Esc => app.cancel_input(),
                         KeyCode::Enter => {
                             if let Err(e) = app.submit_input() {
-                                app.status = e;
+                                app.error = Some(e);
                             }
                         }
                         KeyCode::Backspace => app.backspace(),
