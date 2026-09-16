@@ -224,7 +224,8 @@ async fn run_app_loop(
                     match key.code {
                         KeyCode::Char('q') => app.should_quit = true,
                         KeyCode::Up | KeyCode::Down => {
-                            app.core.selection = app.core.selection.toggle()
+                            app.core.selection = app.core.selection.toggle();
+                            app.core.results.clear();
                         }
                         KeyCode::Enter => {
                             app.start_benchmark();

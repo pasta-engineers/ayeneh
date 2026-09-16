@@ -96,32 +96,51 @@ fn draw_results(frame: &mut Frame, area: Rect, app: &App) {
     ])
     .style(Style::default().add_modifier(Modifier::BOLD));
 
-    let mut rows: Vec<Row> = app
-        .core
-        .results
-        .iter()
-        .map(|r| {
-            let latency = if r.timed_out {
-                "timeout".to_string()
-            } else {
-                r.average_latency_ms.to_string()
-            };
-            let success = format!("{:.0}%", r.success_rate);
+    let mut rows: Vec<Row> = if app.core.results.is_empty() {
+        let pm = app.core.selection.to_package_manager();
+        if let Ok(config) = ayeneh_core::mirror::load_mirrors(pm) {
+            config
+                .mirrors
+                .iter()
+                .map(|m| {
+                    Row::new(vec![
+                        Cell::from(m.clone()),
+                        Cell::from("N/A"),
+                        Cell::from("N/A"),
+                    ])
+                    .style(Style::default().fg(Color::DarkGray))
+                })
+                .collect()
+        } else {
+            Vec::new()
+        }
+    } else {
+        app.core
+            .results
+            .iter()
+            .map(|r| {
+                let latency = if r.timed_out {
+                    "timeout".to_string()
+                } else {
+                    r.average_latency_ms.to_string()
+                };
+                let success = format!("{:.0}%", r.success_rate);
 
-            let style = if r.timed_out {
-                Style::default().fg(Color::Red)
-            } else {
-                Style::default().fg(Color::Green)
-            };
+                let style = if r.timed_out {
+                    Style::default().fg(Color::Red)
+                } else {
+                    Style::default().fg(Color::Green)
+                };
 
-            Row::new(vec![
-                Cell::from(r.name.clone()),
-                Cell::from(latency),
-                Cell::from(success),
-            ])
-            .style(style)
-        })
-        .collect();
+                Row::new(vec![
+                    Cell::from(r.name.clone()),
+                    Cell::from(latency),
+                    Cell::from(success),
+                ])
+                .style(style)
+            })
+            .collect()
+    };
 
     if app.core.running {
         if let Some(config) = &app.core.config {
