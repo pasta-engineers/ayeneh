@@ -213,6 +213,14 @@ impl App {
             let _ = pm;
         }
     }
+
+    fn submit_results(&mut self) {
+        if let Err(e) = self.core.submit_results() {
+            self.error = Some(e);
+        } else {
+            self.status = "Results submitted successfully.".to_string();
+        }
+    }
 }
 
 #[tokio::main]
@@ -323,6 +331,7 @@ async fn run_app_loop(
                         KeyCode::BackTab => {
                             app.active_section = app.active_section.toggle();
                         }
+                        KeyCode::Char('s') => app.submit_results(),
                         _ => {}
                     }
                 }

@@ -2,7 +2,10 @@
 
 use serde::{Deserialize, Serialize};
 use std::fs;
+use std::io::Error;
 use std::path::{Path, PathBuf};
+
+use crate::benchmark::BenchmarkResult;
 
 /// Errors that can occur while loading mirror lists.
 #[derive(Debug)]
@@ -187,6 +190,20 @@ pub fn remove_mirror(pm: PackageManager, mirror: &str) -> Result<(), MirrorError
     let mut config = load_mirrors_from(&path)?;
     config.mirrors.retain(|candidate| candidate != mirror);
     let content = serde_json::to_string_pretty(&config)?;
+    fs::write(&path, content)?;
+    Ok(())
+}
+
+// Rewrites mirror names while preserving package field.
+pub fn rewrite_mirrors_with_results(
+    pm: PackageManager,
+    results: Vec<BenchmarkResult>,
+) -> Result<(), Error> {
+    let path = pm.data_file();
+    let mut config = load_mirrors_from(&path).map_err(|error| Error::other(error.to_string()))?;
+    config.mirrors = results.into_iter().map(|result| result.name).collect();
+    let content =
+        serde_json::to_string_pretty(&config).map_err(|error| Error::other(error.to_string()))?;
     fs::write(&path, content)?;
     Ok(())
 }

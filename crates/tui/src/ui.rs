@@ -207,7 +207,7 @@ fn draw_fastest(frame: &mut Frame, area: Rect, app: &App) {
 
 fn draw_status(frame: &mut Frame, area: Rect, app: &App) {
     let help = format!(
-        "{}   [q] Quit   [Enter] Run/Test   [up/down] Navigate   [Shift+Tab] Change Section   [a] Add Mirror",
+        "{}   [q] Quit   [Enter] Run/Test   [up/down] Navigate   [Shift+Tab] Change Section   [a] Add Mirror [s] Submit Results",
         app.status
     );
     let widget = Paragraph::new(help).block(Block::default().borders(Borders::ALL));

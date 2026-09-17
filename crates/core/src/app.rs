@@ -1,7 +1,10 @@
 //! Application state and operations.
 
 use crate::benchmark::{benchmark_mirror, BenchmarkResult};
-use crate::mirror::{add_mirror, load_mirrors, remove_mirror, MirrorConfig, PackageManager};
+use crate::mirror::{
+    add_mirror, load_mirrors, remove_mirror, rewrite_mirrors_with_results, MirrorConfig,
+    PackageManager,
+};
 
 /// Which package manager is currently selected.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -152,6 +155,17 @@ impl App {
         let pm = self.selection.to_package_manager();
         remove_mirror(pm, url).map_err(|e| format!("Failed to remove mirror: {e}"))?;
         self.results.retain(|result| result.name != url);
+        Ok(())
+    }
+
+    pub fn submit_results(&mut self) -> Result<(), String> {
+        if self.results.is_empty() {
+            return Err("No benchmark results to submit.".to_string());
+        }
+
+        let pm = self.selection.to_package_manager();
+        rewrite_mirrors_with_results(pm, self.results.clone())
+            .map_err(|e| format!("Failed to submit results: {e}"))?;
         Ok(())
     }
 }
