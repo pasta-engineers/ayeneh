@@ -17,7 +17,7 @@ use ratatui::{backend::CrosstermBackend, Terminal};
 
 use crate::ui::Mode;
 
-const DEFAULT_STATUS: &str = "Keys: ";
+const DEFAULT_STATUS: &str = "👀";
 
 // Which section is currently active.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

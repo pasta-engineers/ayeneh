@@ -11,6 +11,8 @@ use ratatui::{
 
 use crate::{ActiveSection, App};
 
+const KEYMAPS: &str = "[q] Quit   [Enter] Run/Test   [up/down] Navigate   [Shift+Tab] Change Section   [a] Add Mirror    [s] Submit Results";
+
 /// Draws the entire application UI into the given frame.
 pub fn draw(frame: &mut Frame, app: &App) {
     let area = frame.area();
@@ -42,9 +44,9 @@ pub fn draw(frame: &mut Frame, app: &App) {
 }
 
 fn draw_title(frame: &mut Frame, area: Rect) {
-    let title = Paragraph::new("Mirror Benchmark")
+    let title = Paragraph::new(KEYMAPS)
         .style(Style::default().add_modifier(Modifier::BOLD))
-        .block(Block::default().borders(Borders::ALL));
+        .block(Block::default().borders(Borders::ALL).title("Keymaps: "));
     frame.render_widget(title, area);
 }
 
@@ -201,10 +203,10 @@ fn draw_fastest(frame: &mut Frame, area: Rect, app: &App) {
 
 fn draw_status(frame: &mut Frame, area: Rect, app: &App) {
     let help = format!(
-        "{}   [q] Quit   [Enter] Run/Test   [up/down] Navigate   [Shift+Tab] Change Section   [a] Add Mirror [s] Submit Results",
+        "{}",
         app.status
     );
-    let widget = Paragraph::new(help).block(Block::default().borders(Borders::ALL));
+    let widget = Paragraph::new(help).block(Block::default().title("Status").borders(Borders::ALL));
     frame.render_widget(widget, area);
 }
 
