@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-`mirror-tester`: Rust 2021 Cargo workspace. Benchmarks package registry mirrors, reports performance, installs Python packages with mirror fallback. Supports PyPI + npm. Scripted CLI + interactive terminal UI.
+`ayeneh`: Rust 2021 Cargo workspace. Benchmarks package registry mirrors, reports performance, installs Python packages with mirror fallback. Supports PyPI + npm. Scripted CLI + interactive terminal UI.
 
 Runtime networked: benchmark resolves + downloads real package archive from each mirror, writes briefly to OS temp dir, deletes, records latency. Never installs or executes benchmark package.
 
