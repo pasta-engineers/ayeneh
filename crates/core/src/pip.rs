@@ -1,6 +1,6 @@
 //! Python package installation through a PyPI mirror with fallback.
 
-use crate::mirror::{load_mirrors, PackageManager};
+use crate::mirror::{load_mirrors, Registry};
 use std::process::Stdio;
 use tokio::process::Command;
 
@@ -8,7 +8,7 @@ use tokio::process::Command;
 /// configured PyPI mirror that succeeds. Pip's output streams straight to
 /// the terminal; a failed mirror falls through to the next one.
 pub async fn install(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
-    let config = load_mirrors(PackageManager::PyPi)?;
+    let config = load_mirrors(Registry::PyPi)?;
     let interpreter = resolve_interpreter().await?;
 
     let mut last_status = String::from("no mirrors configured");

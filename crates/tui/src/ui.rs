@@ -1,6 +1,6 @@
 //! Terminal UI rendering.
 
-use ayeneh_core::app::Selection;
+use ayeneh_core::mirror::Registry;
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
@@ -53,23 +53,23 @@ fn draw_menu(frame: &mut Frame, area: Rect, app: &App) {
         .fg(Color::Yellow)
         .add_modifier(Modifier::BOLD);
 
-    let pypi_prefix = if app.core.selection == Selection::PyPi {
+    let pypi_prefix = if app.core.selection == Registry::PyPi {
         "> "
     } else {
         "  "
     };
-    let npm_prefix = if app.core.selection == Selection::Npm {
+    let npm_prefix = if app.core.selection == Registry::Npm {
         "> "
     } else {
         "  "
     };
 
-    let pypi_style = if app.core.selection == Selection::PyPi {
+    let pypi_style = if app.core.selection == Registry::PyPi {
         selected_style
     } else {
         Style::default()
     };
-    let npm_style = if app.core.selection == Selection::Npm {
+    let npm_style = if app.core.selection == Registry::Npm {
         selected_style
     } else {
         Style::default()
@@ -80,14 +80,14 @@ fn draw_menu(frame: &mut Frame, area: Rect, app: &App) {
         Line::from(Span::styled(format!("{npm_prefix}npm"), npm_style)),
     ];
 
-    let border_style = if app.active_section == ActiveSection::PackageManagers {
+    let border_style = if app.active_section == ActiveSection::Registries {
         Style::default().fg(Color::Yellow)
     } else {
         Style::default()
     };
     let menu = Paragraph::new(lines).block(
         Block::default()
-            .title("Package Manager")
+            .title("Registry")
             .borders(Borders::ALL)
             .border_style(border_style),
     );
@@ -102,21 +102,20 @@ fn draw_results(frame: &mut Frame, area: Rect, app: &App) {
     ])
     .style(Style::default().add_modifier(Modifier::BOLD));
 
-    let pm = app.core.selection.to_package_manager();
-    let mirrors = ayeneh_core::mirror::load_mirrors(pm)
-        .map(|config| config.mirrors)
-        .unwrap_or_default();
-    let pending = app
+    let empty = Vec::new();
+    let mirrors = app
         .core
-        .config
-        .as_ref()
-        .and_then(|config| config.mirrors.get(app.core.benchmark_index));
+        .data
+        .get(app.core.selection.name())
+        .map(|registry_data| &registry_data.mirrors)
+        .unwrap_or(&empty);
+    let pending = app.core.pending_mirror();
     let rows: Vec<Row> = mirrors
         .iter()
-        .map(|mirror| {
-            if pending == Some(mirror) {
+        .map(|entry| {
+            if pending == Some(entry.url.as_str()) {
                 return Row::new(vec![
-                    Cell::from(mirror.clone()),
+                    Cell::from(entry.url.clone()),
                     Cell::from("testing"),
                     Cell::from(""),
                 ])
@@ -127,32 +126,27 @@ fn draw_results(frame: &mut Frame, area: Rect, app: &App) {
                 );
             }
 
-            match app
-                .core
-                .results
-                .iter()
-                .find(|result| result.name == *mirror)
-            {
-                Some(result) => {
-                    let latency = if result.timed_out {
+            match &entry.stats {
+                Some(stats) => {
+                    let latency = if stats.timed_out {
                         "timeout".to_string()
                     } else {
-                        result.average_latency_ms.to_string()
+                        stats.average_latency_ms.to_string()
                     };
-                    let style = if result.timed_out {
+                    let style = if stats.timed_out {
                         Style::default().fg(Color::Red)
                     } else {
                         Style::default().fg(Color::Green)
                     };
                     Row::new(vec![
-                        Cell::from(mirror.clone()),
+                        Cell::from(entry.url.clone()),
                         Cell::from(latency),
-                        Cell::from(format!("{:.0}%", result.success_rate)),
+                        Cell::from(format!("{:.0}%", stats.success_rate)),
                     ])
                     .style(style)
                 }
                 None => Row::new(vec![
-                    Cell::from(mirror.clone()),
+                    Cell::from(entry.url.clone()),
                     Cell::from("N/A"),
                     Cell::from("N/A"),
                 ])

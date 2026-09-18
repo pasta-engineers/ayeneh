@@ -6,7 +6,7 @@ use std::io;
 use std::time::Duration;
 
 use ayeneh_cli::{run_command, Cli};
-use ayeneh_core::{app::App as CoreApp, mirror::load_mirrors};
+use ayeneh_core::app::App as CoreApp;
 use clap::Parser;
 use crossterm::{
     event::{self, Event, KeyCode, KeyEventKind},
@@ -19,19 +19,18 @@ use crate::ui::Mode;
 
 const DEFAULT_STATUS: &str = "Keys: ";
 
-
 // Which section is currently active.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ActiveSection {
-    PackageManagers,
+    Registries,
     Results,
 }
 
 impl ActiveSection {
     pub fn toggle(self) -> Self {
         match self {
-            ActiveSection::PackageManagers => ActiveSection::Results,
-            ActiveSection::Results => ActiveSection::PackageManagers,
+            ActiveSection::Registries => ActiveSection::Results,
+            ActiveSection::Results => ActiveSection::Registries,
         }
     }
 }
@@ -60,7 +59,7 @@ impl App {
             input: String::new(),
             cursor: 0,
             error: None,
-            active_section: ActiveSection::PackageManagers,
+            active_section: ActiveSection::Registries,
             selected_mirror: 0,
         }
     }
@@ -125,30 +124,31 @@ impl App {
         }
 
         self.core.add_mirror(&url)?;
-        self.status = format!(
-            "Added mirror {url} to {}.",
-            self.core.selection.to_package_manager().name()
-        );
+        self.status = format!("Added mirror {url} to {}.", self.core.selection.name());
         self.mode = Mode::Normal;
         self.error = None;
         Ok(())
     }
 
-    fn mirror_count(&self) -> Result<usize, String> {
-        let pm = self.core.selection.to_package_manager();
-        load_mirrors(pm)
-            .map(|config| config.mirrors.len())
-            .map_err(|e| format!("Failed to load mirrors: {e}"))
+    fn mirror_count(&self) -> usize {
+        self.core
+            .data
+            .get(self.core.selection.name())
+            .map(|registry_data| registry_data.mirrors.len())
+            .unwrap_or(0)
     }
 
-    fn selected_mirror_url(&self) -> Result<Option<String>, String> {
-        let pm = self.core.selection.to_package_manager();
-        let config = load_mirrors(pm).map_err(|e| format!("Failed to load mirrors: {e}"))?;
-        Ok(config.mirrors.get(self.selected_mirror).cloned())
+    fn selected_mirror_url(&self) -> Option<String> {
+        self.core
+            .data
+            .get(self.core.selection.name())?
+            .mirrors
+            .get(self.selected_mirror)
+            .map(|entry| entry.url.clone())
     }
 
-    fn move_mirror_selection(&mut self, down: bool) -> Result<(), String> {
-        let count = self.mirror_count()?;
+    fn move_mirror_selection(&mut self, down: bool) {
+        let count = self.mirror_count();
         if count == 0 {
             self.selected_mirror = 0;
         } else if down {
@@ -156,11 +156,10 @@ impl App {
         } else {
             self.selected_mirror = self.selected_mirror.saturating_sub(1);
         }
-        Ok(())
     }
 
     fn start_selected_benchmark(&mut self) -> Result<(), String> {
-        let Some(mirror) = self.selected_mirror_url()? else {
+        let Some(mirror) = self.selected_mirror_url() else {
             return Err("No mirror selected.".to_string());
         };
         self.core.start_single_benchmark(&mirror)?;
@@ -170,13 +169,13 @@ impl App {
     }
 
     fn remove_selected_mirror(&mut self) -> Result<(), String> {
-        let Some(mirror) = self.selected_mirror_url()? else {
+        let Some(mirror) = self.selected_mirror_url() else {
             return Err("No mirror selected.".to_string());
         };
         self.core.remove_mirror(&mirror)?;
         self.selected_mirror = self
             .selected_mirror
-            .min(self.mirror_count()?.saturating_sub(1));
+            .min(self.mirror_count().saturating_sub(1));
         self.error = None;
         self.status = format!("Removed mirror {mirror}.");
         Ok(())
@@ -197,20 +196,12 @@ impl App {
 
     /// Runs one benchmark step and updates the status text accordingly.
     async fn benchmark_step(&mut self) {
-        let pm = self.core.selection.to_package_manager();
-        let pending_status = match &self.core.config {
-            Some(config) if self.core.benchmark_index < config.mirrors.len() => {
-                Some("Testing ...".to_string())
-            }
-            _ => None,
-        };
-        if let Some(s) = pending_status {
-            self.status = s;
+        if self.core.running {
+            self.status = "Testing ...".to_string();
         }
         let done = self.core.benchmark_step().await;
         if done {
             self.status = "Benchmark complete.".to_string();
-            let _ = pm;
         }
     }
 
@@ -302,20 +293,16 @@ async fn run_app_loop(
                     match key.code {
                         KeyCode::Char('q') => app.should_quit = true,
                         KeyCode::Up | KeyCode::Down => match app.active_section {
-                            ActiveSection::PackageManagers => {
+                            ActiveSection::Registries => {
                                 app.core.selection = app.core.selection.toggle();
-                                app.core.results.clear();
                                 app.selected_mirror = 0;
                             }
                             ActiveSection::Results => {
-                                if let Err(e) = app.move_mirror_selection(key.code == KeyCode::Down)
-                                {
-                                    app.error = Some(e);
-                                }
+                                app.move_mirror_selection(key.code == KeyCode::Down);
                             }
                         },
                         KeyCode::Enter => match app.active_section {
-                            ActiveSection::PackageManagers => app.start_benchmark(),
+                            ActiveSection::Registries => app.start_benchmark(),
                             ActiveSection::Results => {
                                 if let Err(e) = app.start_selected_benchmark() {
                                     app.error = Some(e);

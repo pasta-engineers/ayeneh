@@ -9,7 +9,7 @@
 //! use.
 
 use crate::config::Config;
-use crate::mirror::PackageManager;
+use crate::mirror::Registry;
 use serde::{Deserialize, Serialize};
 use std::time::{Duration, Instant};
 
@@ -34,7 +34,7 @@ pub struct BenchmarkResult {
 /// Always returns a [`BenchmarkResult`]; failures and timeouts are recorded
 /// on the result rather than propagated as an error, so that a single bad
 /// mirror never stops the overall benchmark run.
-pub async fn benchmark_mirror(pm: PackageManager, package: &str, mirror: &str) -> BenchmarkResult {
+pub async fn benchmark_mirror(registry: Registry, package: &str, mirror: &str) -> BenchmarkResult {
     let cfg = Config::from_env();
     let attempts = cfg.attempts;
     let client = match reqwest::Client::builder()
@@ -57,7 +57,7 @@ pub async fn benchmark_mirror(pm: PackageManager, package: &str, mirror: &str) -
 
     for _ in 0..attempts {
         let start = Instant::now();
-        match download_and_discard_package(&client, pm, package, mirror).await {
+        match download_and_discard_package(&client, registry, package, mirror).await {
             Ok(()) => {
                 total_latency += start.elapsed().as_millis();
                 successes += 1;
@@ -87,14 +87,14 @@ pub async fn benchmark_mirror(pm: PackageManager, package: &str, mirror: &str) -
 /// average latency (fastest first). Mirrors that time out completely are
 /// sorted to the end.
 pub async fn benchmark_all(
-    pm: PackageManager,
+    registry: Registry,
     package: &str,
     mirrors: &[String],
 ) -> Vec<BenchmarkResult> {
     let mut results = Vec::with_capacity(mirrors.len());
 
     for mirror in mirrors {
-        results.push(benchmark_mirror(pm, package, mirror).await);
+        results.push(benchmark_mirror(registry, package, mirror).await);
     }
 
     results.sort_by(|a, b| match (a.timed_out, b.timed_out) {
@@ -111,11 +111,11 @@ pub async fn benchmark_all(
 /// deletes it. The package is only ever downloaded, never installed/run.
 async fn download_and_discard_package(
     client: &reqwest::Client,
-    pm: PackageManager,
+    registry: Registry,
     package: &str,
     mirror: &str,
 ) -> Result<(), DownloadError> {
-    let download_url = resolve_download_url(client, pm, package, mirror).await?;
+    let download_url = resolve_download_url(client, registry, package, mirror).await?;
 
     let bytes = client
         .get(&download_url)
@@ -141,13 +141,13 @@ async fn download_and_discard_package(
 /// `mirror`, dispatching to the package-manager-specific lookup.
 async fn resolve_download_url(
     client: &reqwest::Client,
-    pm: PackageManager,
+    registry: Registry,
     package: &str,
     mirror: &str,
 ) -> Result<String, DownloadError> {
-    match pm {
-        PackageManager::PyPi => resolve_pypi_download_url(client, package, mirror).await,
-        PackageManager::Npm => resolve_npm_download_url(client, package, mirror).await,
+    match registry {
+        Registry::PyPi => resolve_pypi_download_url(client, package, mirror).await,
+        Registry::Npm => resolve_npm_download_url(client, package, mirror).await,
     }
 }
 

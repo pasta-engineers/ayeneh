@@ -15,10 +15,10 @@ pub struct ReportEntry {
     pub success: f32,
 }
 
-/// A full benchmark report for a package manager.
+/// A full benchmark report for a registry.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Report {
-    pub package_manager: String,
+    pub registry: String,
     pub generated_at: String,
     pub results: Vec<ReportEntry>,
     pub best: Option<String>,
@@ -26,7 +26,7 @@ pub struct Report {
 
 impl Report {
     /// Builds a report from a set of benchmark results.
-    pub fn new(package_manager: &str, results: &[BenchmarkResult]) -> Self {
+    pub fn new(registry: &str, results: &[BenchmarkResult]) -> Self {
         let entries = results
             .iter()
             .map(|r| ReportEntry {
@@ -42,7 +42,7 @@ impl Report {
             .map(|r| r.name.clone());
 
         Report {
-            package_manager: package_manager.to_string(),
+            registry: registry.to_string(),
             generated_at: Local::now().to_rfc3339(),
             results: entries,
             best,
