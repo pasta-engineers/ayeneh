@@ -4,7 +4,7 @@
 use ayeneh_core::benchmark::{benchmark_all, BenchmarkResult};
 use ayeneh_core::mirror::{load_mirrors, Registry};
 use ayeneh_core::report::Report;
-use ayeneh_core::{npm, pip, scheduler};
+use ayeneh_core::{npm, pip, scheduler, uv};
 use clap::{Parser, Subcommand};
 
 /// Mirror Benchmark: benchmark package registry mirrors and find the fastest one.
@@ -36,6 +36,11 @@ pub enum Commands {
         #[command(subcommand)]
         command: NpmCommand,
     },
+    /// Install uv tools.
+    UV {
+        #[command(subcommand)]
+        command: UVCommand,
+    },
 }
 
 #[derive(Subcommand)]
@@ -53,6 +58,16 @@ pub enum NpmCommand {
     /// Install one or more packages.
     Install {
         /// npm install arguments: package names, options.
+        #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
+        args: Vec<String>,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum UVCommand {
+    /// Install uv tools.
+    Add {
+        /// uv add arguments: tool names.
         #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
         args: Vec<String>,
     },
@@ -132,6 +147,9 @@ pub async fn run_command(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
         Some(Commands::Npm {
             command: NpmCommand::Install { args },
         }) => npm::install(&args).await,
+        Some(Commands::UV {
+            command: UVCommand::Add { args },
+        }) => uv::add(&args).await,
         None => Ok(()),
     }
 }

@@ -11,3 +11,4 @@ pub mod npm;
 pub mod pip;
 pub mod report;
 pub mod scheduler;
+pub mod uv;
