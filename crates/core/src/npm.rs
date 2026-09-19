@@ -1,6 +1,6 @@
 //! npm package installation through a registry mirror with fallback.
 
-use crate::mirror::{load_mirrors, PackageManager};
+use crate::mirror::{load_mirrors, Registry};
 use std::process::Stdio;
 use tokio::process::Command;
 
@@ -8,7 +8,7 @@ use tokio::process::Command;
 /// configured npm mirror that succeeds. npm's output streams straight to
 /// the terminal; a failed mirror falls through to the next one.
 pub async fn install(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
-    let config = load_mirrors(PackageManager::Npm)?;
+    let config = load_mirrors(Registry::Npm)?;
 
     let mut last_status = String::from("no mirrors configured");
     for mirror in &config.mirrors {

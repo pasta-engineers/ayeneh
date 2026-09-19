@@ -1,11 +1,11 @@
 //! Mirror Benchmark CLI shared logic, exposed as a library so other crates
 //! (e.g. the TUI) can reuse the same command handlers.
 
-use clap::{Parser, Subcommand};
 use ayeneh_core::benchmark::{benchmark_all, BenchmarkResult};
-use ayeneh_core::mirror::{load_mirrors, PackageManager};
+use ayeneh_core::mirror::{load_mirrors, Registry};
 use ayeneh_core::report::Report;
-use ayeneh_core::{npm, pip, scheduler};
+use ayeneh_core::{npm, pip, scheduler, uv};
+use clap::{Parser, Subcommand};
 
 /// Mirror Benchmark: benchmark package registry mirrors and find the fastest one.
 #[derive(Parser)]
@@ -17,10 +17,10 @@ pub struct Cli {
 
 #[derive(Subcommand)]
 pub enum Commands {
-    /// Run a one-off benchmark for a package manager ("pypi" or "npm") and print results.
+    /// Run a one-off benchmark for a registry ("pypi" or "npm") and print results.
     Run {
-        /// Which package manager to benchmark: "pypi" or "npm".
-        package_manager: String,
+        /// Which registry to benchmark: "pypi" or "npm".
+        registry: String,
     },
     /// Run benchmarks for pypi and npm and write a JSON report to reports/.
     Report,
@@ -35,6 +35,11 @@ pub enum Commands {
     Npm {
         #[command(subcommand)]
         command: NpmCommand,
+    },
+    /// Install uv tools.
+    UV {
+        #[command(subcommand)]
+        command: UVCommand,
     },
 }
 
@@ -58,21 +63,31 @@ pub enum NpmCommand {
     },
 }
 
+#[derive(Subcommand)]
+pub enum UVCommand {
+    /// Mirrors `uv add` command.
+    Add {
+        /// uv add arguments: package names.
+        #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
+        args: Vec<String>,
+    },
+}
+
 /// Runs a single benchmark for the given package manager name and prints
 /// the results to stdout.
 pub async fn run_once(name: &str) -> Result<(), Box<dyn std::error::Error>> {
-    let pm = PackageManager::from_str(name)
-        .ok_or_else(|| format!("Unknown package manager '{name}'. Use 'pypi' or 'npm'."))?;
+    let registry = Registry::from_str(name)
+        .ok_or_else(|| format!("Unknown registry '{name}'. Use 'pypi' or 'npm'."))?;
 
-    let config = load_mirrors(pm)?;
+    let config = load_mirrors(registry)?;
     println!(
         "Benchmarking {} mirrors for {} (package: {})...",
         config.mirrors.len(),
-        pm.name(),
+        registry.name(),
         config.package
     );
 
-    let results = benchmark_all(pm, &config.package, &config.mirrors).await;
+    let results = benchmark_all(registry, &config.package, &config.mirrors).await;
     print_results(&results);
 
     Ok(())
@@ -100,12 +115,12 @@ pub fn print_results(results: &[BenchmarkResult]) {
 
 /// Runs benchmarks for both pypi and npm and saves a JSON report for each.
 pub async fn run_report() -> Result<(), Box<dyn std::error::Error>> {
-    for pm in [PackageManager::PyPi, PackageManager::Npm] {
-        let config = load_mirrors(pm)?;
-        println!("Benchmarking {}...", pm.name());
+    for registry in [Registry::PyPi, Registry::Npm] {
+        let config = load_mirrors(registry)?;
+        println!("Benchmarking {}...", registry.name());
 
-        let results = benchmark_all(pm, &config.package, &config.mirrors).await;
-        let report = Report::new(pm.name(), &results);
+        let results = benchmark_all(registry, &config.package, &config.mirrors).await;
+        let report = Report::new(registry.name(), &results);
         let path = report.save()?;
 
         println!("Report saved to {}", path.display());
@@ -120,7 +135,7 @@ pub async fn run_report() -> Result<(), Box<dyn std::error::Error>> {
 /// was provided.
 pub async fn run_command(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
     match cli.command {
-        Some(Commands::Run { package_manager }) => run_once(&package_manager).await,
+        Some(Commands::Run { registry }) => run_once(&registry).await,
         Some(Commands::Report) => run_report().await,
         Some(Commands::Schedule) => {
             scheduler::run().await;
@@ -132,6 +147,9 @@ pub async fn run_command(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
         Some(Commands::Npm {
             command: NpmCommand::Install { args },
         }) => npm::install(&args).await,
+        Some(Commands::UV {
+            command: UVCommand::Add { args },
+        }) => uv::add(&args).await,
         None => Ok(()),
     }
 }

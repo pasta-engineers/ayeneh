@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-`mirror-tester`: Rust 2021 Cargo workspace. Benchmarks package registry mirrors, reports performance, installs Python packages with mirror fallback. Supports PyPI + npm. Scripted CLI + interactive terminal UI.
+`ayeneh`: Rust 2021 Cargo workspace. Benchmarks package registry mirrors, reports performance, installs Python packages with mirror fallback. Supports PyPI + npm. Scripted CLI + interactive terminal UI.
 
 Runtime networked: benchmark resolves + downloads real package archive from each mirror, writes briefly to OS temp dir, deletes, records latency. Never installs or executes benchmark package.
 
@@ -99,3 +99,16 @@ Keep workspace dependency versions in the root `Cargo.toml` and use workspace de
 - Do not move network, filesystem, or subprocess logic into UI rendering code.
 - When changing the benchmark algorithm, update `ARCHITECTURE.md` and any user-facing README behavior that has changed.
 - When changing the JSON shape of mirror configuration or reports, update the sample files/documentation and consider compatibility with existing files.
+
+## graphify
+
+This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
+
+When the user types `/graphify`, use the installed graphify skill or instructions before doing anything else.
+
+Rules:
+- For codebase questions, first run `graphify query "<question>"` when graphify-out/graph.json exists. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
+- Dirty graphify-out/ files are expected after hooks or incremental updates; dirty graph files are not a reason to skip graphify. Only skip graphify if the task is about stale or incorrect graph output, or the user explicitly says not to use it.
+- If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
+- Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
+- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).

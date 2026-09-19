@@ -5,17 +5,33 @@ mod ui;
 use std::io;
 use std::time::Duration;
 
-use crossterm::{
-    event::{self, Event, KeyCode, KeyEventKind},
-    execute,
-    terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
-};
-use clap::Parser;
+use ayeneh_cli::{run_command, Cli};
 use ayeneh_core::app::App as CoreApp;
-use ayeneh_cli::{Cli, run_command};
+use clap::Parser;
+use crossterm::{
+    event::{self, Event, KeyCode, KeyEventKind, KeyModifiers}, execute, terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
+};
 use ratatui::{backend::CrosstermBackend, Terminal};
 
 use crate::ui::Mode;
+
+const DEFAULT_STATUS: &str = "";
+
+// Which section is currently active.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ActiveSection {
+    Registries,
+    Results,
+}
+
+impl ActiveSection {
+    pub fn toggle(self) -> Self {
+        match self {
+            ActiveSection::Registries => ActiveSection::Results,
+            ActiveSection::Results => ActiveSection::Registries,
+        }
+    }
+}
 
 /// The TUI's application state: wraps the core [`CoreApp`] and adds UI-only
 /// fields (input mode, current text input, cursor position, status text).
@@ -26,18 +42,23 @@ pub struct App {
     pub mode: Mode,
     pub input: String,
     pub cursor: usize,
+    pub error: Option<String>,
+    pub active_section: ActiveSection,
+    pub selected_mirror: usize,
 }
 
 impl App {
     fn new() -> Self {
         App {
             core: CoreApp::new(),
-            status: "Press [Enter] to run a benchmark, [up/down] to switch package manager."
-                .to_string(),
+            status: DEFAULT_STATUS.to_string(),
             should_quit: false,
             mode: Mode::Normal,
             input: String::new(),
             cursor: 0,
+            error: None,
+            active_section: ActiveSection::Registries,
+            selected_mirror: 0,
         }
     }
 
@@ -45,15 +66,16 @@ impl App {
         self.mode = Mode::Input;
         self.input.clear();
         self.cursor = 0;
-        self.status =
-            "Type a mirror URL, [Enter] to save, [Esc] to cancel.".to_string();
+        self.status = "Type a mirror URL, [Enter] to save, [Esc] to cancel.".to_string();
+        self.error = None;
     }
 
     fn cancel_input(&mut self) {
         self.mode = Mode::Normal;
         self.cursor = 0;
         self.input.clear();
-        self.status = "Press [Enter] to run a benchmark, [up/down] to switch package manager, [a] to add a mirror.".to_string();
+        self.status = DEFAULT_STATUS.to_string();
+        self.error = None;
     }
 
     fn input_char(&mut self, c: char) {
@@ -100,16 +122,69 @@ impl App {
         }
 
         self.core.add_mirror(&url)?;
-        self.status = format!("Added mirror {url} to {}.", self.core.selection.to_package_manager().name());
+        self.status = format!("Added mirror {url} to {}.", self.core.selection.name());
         self.mode = Mode::Normal;
+        self.error = None;
+        Ok(())
+    }
+
+    fn mirror_count(&self) -> usize {
+        self.core
+            .data
+            .get(self.core.selection.name())
+            .map(|registry_data| registry_data.mirrors.len())
+            .unwrap_or(0)
+    }
+
+    fn selected_mirror_url(&self) -> Option<String> {
+        self.core
+            .data
+            .get(self.core.selection.name())?
+            .mirrors
+            .get(self.selected_mirror)
+            .map(|entry| entry.url.clone())
+    }
+
+    fn move_mirror_selection(&mut self, down: bool) {
+        let count = self.mirror_count();
+        if count == 0 {
+            self.selected_mirror = 0;
+        } else if down {
+            self.selected_mirror = (self.selected_mirror + 1).min(count - 1);
+        } else {
+            self.selected_mirror = self.selected_mirror.saturating_sub(1);
+        }
+    }
+
+    fn start_selected_benchmark(&mut self) -> Result<(), String> {
+        let Some(mirror) = self.selected_mirror_url() else {
+            return Err("No mirror selected.".to_string());
+        };
+        self.core.start_single_benchmark(&mirror)?;
+        self.error = None;
+        self.status = format!("Benchmarking {mirror}...");
+        Ok(())
+    }
+
+    fn remove_selected_mirror(&mut self) -> Result<(), String> {
+        let Some(mirror) = self.selected_mirror_url() else {
+            return Err("No mirror selected.".to_string());
+        };
+        self.core.remove_mirror(&mirror)?;
+        self.selected_mirror = self
+            .selected_mirror
+            .min(self.mirror_count().saturating_sub(1));
+        self.error = None;
+        self.status = format!("Removed mirror {mirror}.");
         Ok(())
     }
 
     /// Marks a benchmark run as starting, loading mirror config.
     fn start_benchmark(&mut self) {
+        self.error = None;
         match self.core.start_benchmark() {
             Ok(()) => {
-                self.status = "Benchmarking...".to_string();
+                self.status = "Benchmarking started...".to_string();
             }
             Err(e) => {
                 self.status = e;
@@ -119,20 +194,20 @@ impl App {
 
     /// Runs one benchmark step and updates the status text accordingly.
     async fn benchmark_step(&mut self) {
-        let pm = self.core.selection.to_package_manager();
-        let pending_status = match &self.core.config {
-            Some(config) if self.core.benchmark_index < config.mirrors.len() => {
-                Some("Testing ...".to_string())
-            }
-            _ => None,
-        };
-        if let Some(s) = pending_status {
-            self.status = s;
+        if self.core.running {
+            self.status = "Testing ...".to_string();
         }
         let done = self.core.benchmark_step().await;
         if done {
-            self.status = "Benchmark complete.".to_string();
-            let _ = pm;
+            self.status = "Benchmarking is completed.".to_string();
+        }
+    }
+
+    fn submit_results(&mut self) {
+        if let Err(e) = self.core.submit_results() {
+            self.error = Some(e);
+        } else {
+            self.status = "Results submitted successfully.".to_string();
         }
     }
 }
@@ -202,7 +277,7 @@ async fn run_app_loop(
                         KeyCode::Esc => app.cancel_input(),
                         KeyCode::Enter => {
                             if let Err(e) = app.submit_input() {
-                                app.status = e;
+                                app.error = Some(e);
                             }
                         }
                         KeyCode::Backspace => app.backspace(),
@@ -210,19 +285,44 @@ async fn run_app_loop(
                         KeyCode::Right => app.move_right(),
                         KeyCode::Home => app.move_home(),
                         KeyCode::End => app.move_end(),
-                        _ => {}
+                        _ => {
+                            app.error = Some("Unknown key".to_string());
+                        }
                     }
                 } else {
                     match key.code {
                         KeyCode::Char('q') => app.should_quit = true,
-                        KeyCode::Up | KeyCode::Down => {
-                            app.core.selection = app.core.selection.toggle()
-                        }
-                        KeyCode::Enter => {
-                            app.start_benchmark();
+                        KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => app.should_quit = true,
+                        KeyCode::Up | KeyCode::Down => match app.active_section {
+                            ActiveSection::Registries => {
+                                app.core.selection = app.core.selection.toggle();
+                                app.selected_mirror = 0;
+                            }
+                            ActiveSection::Results => {
+                                app.move_mirror_selection(key.code == KeyCode::Down);
+                            }
+                        },
+                        KeyCode::Enter => match app.active_section {
+                            ActiveSection::Registries => app.start_benchmark(),
+                            ActiveSection::Results => {
+                                if let Err(e) = app.start_selected_benchmark() {
+                                    app.error = Some(e);
+                                }
+                            }
+                        },
+                        KeyCode::Char('d') if app.active_section == ActiveSection::Results => {
+                            if let Err(e) = app.remove_selected_mirror() {
+                                app.error = Some(e);
+                            }
                         }
                         KeyCode::Char('a') => app.enter_input(),
-                        _ => {}
+                        KeyCode::BackTab => {
+                            app.active_section = app.active_section.toggle();
+                        }
+                        KeyCode::Char('s') => app.submit_results(),
+                        _ => {
+                            app.error = Some("Unknown key".to_string());
+                        }
                     }
                 }
             }

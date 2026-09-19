@@ -34,49 +34,59 @@ impl From<serde_json::Error> for MirrorError {
     }
 }
 
-/// Supported package managers.
+/// Supported registries.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum PackageManager {
+pub enum Registry {
     PyPi,
     Npm,
 }
 
-impl PackageManager {
-    /// Parses a package manager name from a string (case-insensitive).
+impl Registry {
+    /// Parses a registry name from a string (case-insensitive).
     pub fn from_str(s: &str) -> Option<Self> {
         match s.to_lowercase().as_str() {
-            "pypi" | "pip" => Some(PackageManager::PyPi),
-            "npm" => Some(PackageManager::Npm),
+            "pypi" | "pip" => Some(Registry::PyPi),
+            "npm" => Some(Registry::Npm),
             _ => None,
         }
     }
 
-    /// Returns the relative file path for this package manager's mirror list
-    /// within the configured registry directory.
-    pub fn data_file_name(&self) -> &'static str {
+    /// Toggles between the two available registries.
+    pub fn toggle(self) -> Self {
         match self {
-            PackageManager::PyPi => "pypi.json",
-            PackageManager::Npm => "npm.json",
+            Registry::PyPi => Registry::Npm,
+            Registry::Npm => Registry::PyPi,
         }
     }
 
-    /// Returns the on-disk file path for this package manager's mirror list,
-    /// resolved from the configured registry directory.
+    /// Returns the relative file path for this registry's mirror list
+    /// within the configured data directory.
+    pub fn data_file_name(&self) -> &'static str {
+        match self {
+            Registry::PyPi => "pypi.json",
+            Registry::Npm => "npm.json",
+        }
+    }
+
+    /// Returns the on-disk file path for this registry's mirror list,
+    /// resolved from the configured data directory.
     pub fn data_file(&self) -> PathBuf {
         data_dir().join(self.data_file_name())
     }
 
-    /// Returns the display name of the package manager.
+    /// Returns the registry's identifier, used for display and as its key
+    /// in [`crate::app::App::data`].
     pub fn name(&self) -> &'static str {
         match self {
-            PackageManager::PyPi => "pypi",
-            PackageManager::Npm => "npm",
+            Registry::PyPi => "pypi",
+            Registry::Npm => "npm",
         }
     }
 }
 
 /// A sample package to download during benchmarking, together with the
-/// list of mirror URLs to test it against.
+/// list of mirror URLs to test it against. This is the on-disk shape of
+/// `pypi.json` / `npm.json`.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MirrorConfig {
     /// Name of the package that will actually be downloaded from each
@@ -85,6 +95,69 @@ pub struct MirrorConfig {
     pub package: String,
     /// Mirror base URLs to benchmark.
     pub mirrors: Vec<String>,
+}
+
+/// Benchmark outcome for a single mirror, stored inline in [`RegistryData`].
+#[derive(Debug, Clone)]
+pub struct MirrorStats {
+    pub average_latency_ms: u128,
+    pub success_rate: f32,
+    pub timed_out: bool,
+}
+
+/// A mirror URL paired with its latest benchmark outcome. `stats` is `None`
+/// until the mirror has been benchmarked at least once in this session.
+#[derive(Debug, Clone)]
+pub struct MirrorEntry {
+    pub url: String,
+    pub stats: Option<MirrorStats>,
+}
+
+/// Package + ordered mirror list (with results) for one registry. This is
+/// the single in-memory source of truth used by [`crate::app::App`].
+#[derive(Debug, Clone)]
+pub struct RegistryData {
+    pub package: String,
+    pub mirrors: Vec<MirrorEntry>,
+}
+
+impl RegistryData {
+    /// Finds the entry for a given mirror URL.
+    pub fn find(&self, url: &str) -> Option<&MirrorEntry> {
+        self.mirrors.iter().find(|entry| entry.url == url)
+    }
+
+    /// Finds the entry for a given mirror URL, mutably.
+    pub fn find_mut(&mut self, url: &str) -> Option<&mut MirrorEntry> {
+        self.mirrors.iter_mut().find(|entry| entry.url == url)
+    }
+
+    /// Returns the mirror URLs in their current order.
+    pub fn urls(&self) -> Vec<String> {
+        self.mirrors.iter().map(|entry| entry.url.clone()).collect()
+    }
+
+    /// Sorts mirrors after a benchmark run: successful results fastest
+    /// first, then not-yet-benchmarked mirrors, then confirmed timeouts
+    /// last. Safe to call after both full and single-mirror benchmarks.
+    pub fn sort_by_results(&mut self) {
+        fn rank(entry: &MirrorEntry) -> u8 {
+            match &entry.stats {
+                Some(stats) if !stats.timed_out => 0,
+                None => 1,
+                Some(_) => 2,
+            }
+        }
+
+        self.mirrors.sort_by(|a, b| {
+            rank(a)
+                .cmp(&rank(b))
+                .then_with(|| match (&a.stats, &b.stats) {
+                    (Some(x), Some(y)) => x.average_latency_ms.cmp(&y.average_latency_ms),
+                    _ => std::cmp::Ordering::Equal,
+                })
+        });
+    }
 }
 
 /// Returns the directory containing the registry configuration files.
@@ -157,9 +230,9 @@ mod tests {
 }
 
 /// Loads the mirror configuration (sample package + mirror URLs) for the
-/// given package manager.
-pub fn load_mirrors(pm: PackageManager) -> Result<MirrorConfig, MirrorError> {
-    let path = pm.data_file();
+/// given registry.
+pub fn load_mirrors(registry: Registry) -> Result<MirrorConfig, MirrorError> {
+    let path = registry.data_file();
     load_mirrors_from(&path)
 }
 
@@ -170,12 +243,47 @@ pub fn load_mirrors_from(path: &Path) -> Result<MirrorConfig, MirrorError> {
     Ok(config)
 }
 
-/// Appends a mirror URL to the given package manager's mirror list and
-/// persists the updated configuration back to its data file.
-pub fn add_mirror(pm: PackageManager, mirror: &str) -> Result<(), MirrorError> {
-    let path = pm.data_file();
+/// Loads a registry's mirror list from disk and wraps it as [`RegistryData`],
+/// with every mirror's stats initialized to `None`.
+pub fn load_registry_data(registry: Registry) -> Result<RegistryData, MirrorError> {
+    let config = load_mirrors(registry)?;
+    Ok(RegistryData {
+        package: config.package,
+        mirrors: config
+            .mirrors
+            .into_iter()
+            .map(|url| MirrorEntry { url, stats: None })
+            .collect(),
+    })
+}
+
+/// Appends a mirror URL to the given registry's mirror list and persists
+/// the updated configuration back to its data file.
+pub fn add_mirror(registry: Registry, mirror: &str) -> Result<(), MirrorError> {
+    let path = registry.data_file();
     let mut config = load_mirrors_from(&path)?;
     config.mirrors.push(mirror.to_string());
+    let content = serde_json::to_string_pretty(&config)?;
+    fs::write(&path, content)?;
+    Ok(())
+}
+
+/// Removes a mirror URL from the given registry's mirror list.
+pub fn remove_mirror(registry: Registry, mirror: &str) -> Result<(), MirrorError> {
+    let path = registry.data_file();
+    let mut config = load_mirrors_from(&path)?;
+    config.mirrors.retain(|candidate| candidate != mirror);
+    let content = serde_json::to_string_pretty(&config)?;
+    fs::write(&path, content)?;
+    Ok(())
+}
+
+/// Rewrites the on-disk mirror order for a registry, preserving the package
+/// field. Used to persist the sorted order after benchmarking.
+pub fn rewrite_mirrors(registry: Registry, urls: Vec<String>) -> Result<(), MirrorError> {
+    let path = registry.data_file();
+    let mut config = load_mirrors_from(&path)?;
+    config.mirrors = urls;
     let content = serde_json::to_string_pretty(&config)?;
     fs::write(&path, content)?;
     Ok(())

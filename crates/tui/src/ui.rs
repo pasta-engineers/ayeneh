@@ -1,15 +1,17 @@
 //! Terminal UI rendering.
 
-use ayeneh_core::app::{Selection};
+use ayeneh_core::mirror::Registry;
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
-    widgets::{Block, Borders, Cell, Paragraph, Row, Table},
+    widgets::{Block, Borders, Cell, Paragraph, Row, Table, TableState},
     Frame,
 };
 
-use crate::App;
+use crate::{ActiveSection, App};
+
+const KEYMAPS: &str = "[q|ctrl+c] Quit   [Enter] Test   [s] Submit Results   [up/down] Navigate   [Shift+Tab] Change Section   [a] Add Mirror";
 
 /// Draws the entire application UI into the given frame.
 pub fn draw(frame: &mut Frame, app: &App) {
@@ -20,28 +22,30 @@ pub fn draw(frame: &mut Frame, app: &App) {
         .constraints([
             Constraint::Length(3), // title
             Constraint::Length(4), // package manager menu
-            Constraint::Min(6),    // results table
-            Constraint::Length(3), // fastest mirror
             Constraint::Length(3), // status / help
+            Constraint::Length(3), // fastest mirror
+            Constraint::Min(6),    // results table
+            Constraint::Length(3), // error box
         ])
         .split(area);
 
     draw_title(frame, chunks[0]);
     draw_menu(frame, chunks[1], app);
-    draw_results(frame, chunks[2], app);
-    draw_fastest(frame, chunks[3], app);
 
     if app.mode == Mode::Input {
-        draw_input(frame, chunks[4], app);
+        draw_input(frame, chunks[2], app);
     } else {
-        draw_status(frame, chunks[4], app);
+        draw_status(frame, chunks[2], app);
     }
+
+    draw_fastest(frame, chunks[3], app);
+    draw_results(frame, chunks[4], app);
+    draw_error(frame, chunks[5], app);
 }
 
 fn draw_title(frame: &mut Frame, area: Rect) {
-    let title = Paragraph::new("Mirror Benchmark")
-        .style(Style::default().add_modifier(Modifier::BOLD))
-        .block(Block::default().borders(Borders::ALL));
+    let title = Paragraph::new(KEYMAPS)
+        .block(Block::default().borders(Borders::ALL).title("Keymaps: "));
     frame.render_widget(title, area);
 }
 
@@ -50,23 +54,23 @@ fn draw_menu(frame: &mut Frame, area: Rect, app: &App) {
         .fg(Color::Yellow)
         .add_modifier(Modifier::BOLD);
 
-    let pypi_prefix = if app.core.selection == Selection::PyPi {
+    let pypi_prefix = if app.core.selection == Registry::PyPi {
         "> "
     } else {
         "  "
     };
-    let npm_prefix = if app.core.selection == Selection::Npm {
+    let npm_prefix = if app.core.selection == Registry::Npm {
         "> "
     } else {
         "  "
     };
 
-    let pypi_style = if app.core.selection == Selection::PyPi {
+    let pypi_style = if app.core.selection == Registry::PyPi {
         selected_style
     } else {
         Style::default()
     };
-    let npm_style = if app.core.selection == Selection::Npm {
+    let npm_style = if app.core.selection == Registry::Npm {
         selected_style
     } else {
         Style::default()
@@ -77,10 +81,16 @@ fn draw_menu(frame: &mut Frame, area: Rect, app: &App) {
         Line::from(Span::styled(format!("{npm_prefix}npm"), npm_style)),
     ];
 
+    let border_style = if app.active_section == ActiveSection::Registries {
+        Style::default().fg(Color::Yellow)
+    } else {
+        Style::default()
+    };
     let menu = Paragraph::new(lines).block(
         Block::default()
-            .title("Package Manager")
-            .borders(Borders::ALL),
+            .title("Registry")
+            .borders(Borders::ALL)
+            .border_style(border_style),
     );
     frame.render_widget(menu, area);
 }
@@ -93,51 +103,58 @@ fn draw_results(frame: &mut Frame, area: Rect, app: &App) {
     ])
     .style(Style::default().add_modifier(Modifier::BOLD));
 
-    let mut rows: Vec<Row> = app
+    let empty = Vec::new();
+    let mirrors = app
         .core
-        .results
+        .data
+        .get(app.core.selection.name())
+        .map(|registry_data| &registry_data.mirrors)
+        .unwrap_or(&empty);
+    let pending = app.core.pending_mirror();
+    let rows: Vec<Row> = mirrors
         .iter()
-        .map(|r| {
-            let latency = if r.timed_out {
-                "timeout".to_string()
-            } else {
-                r.average_latency_ms.to_string()
-            };
-            let success = format!("{:.0}%", r.success_rate);
-
-            let style = if r.timed_out {
-                Style::default().fg(Color::Red)
-            } else {
-                Style::default().fg(Color::Green)
-            };
-
-            Row::new(vec![
-                Cell::from(r.name.clone()),
-                Cell::from(latency),
-                Cell::from(success),
-            ])
-            .style(style)
-        })
-        .collect();
-
-    if app.core.running {
-        if let Some(config) = &app.core.config {
-            if app.core.benchmark_index < config.mirrors.len() {
-                let pending = &config.mirrors[app.core.benchmark_index];
-                let testing_style = Style::default()
-                    .fg(Color::Yellow)
-                    .add_modifier(Modifier::BOLD);
-                rows.push(
-                    Row::new(vec![
-                        Cell::from(format!("(testing {})", pending)),
-                        Cell::from(""),
-                        Cell::from(""),
-                    ])
-                    .style(testing_style),
+        .map(|entry| {
+            if pending == Some(entry.url.as_str()) {
+                return Row::new(vec![
+                    Cell::from(entry.url.clone()),
+                    Cell::from("testing"),
+                    Cell::from(""),
+                ])
+                .style(
+                    Style::default()
+                        .fg(Color::Yellow)
+                        .add_modifier(Modifier::BOLD),
                 );
             }
-        }
-    }
+
+            match &entry.stats {
+                Some(stats) => {
+                    let latency = if stats.timed_out {
+                        "timeout".to_string()
+                    } else {
+                        stats.average_latency_ms.to_string()
+                    };
+                    let style = if stats.timed_out {
+                        Style::default().fg(Color::Red)
+                    } else {
+                        Style::default().fg(Color::Green)
+                    };
+                    Row::new(vec![
+                        Cell::from(entry.url.clone()),
+                        Cell::from(latency),
+                        Cell::from(format!("{:.0}%", stats.success_rate)),
+                    ])
+                    .style(style)
+                }
+                None => Row::new(vec![
+                    Cell::from(entry.url.clone()),
+                    Cell::from("N/A"),
+                    Cell::from("N/A"),
+                ])
+                .style(Style::default().fg(Color::DarkGray)),
+            }
+        })
+        .collect();
 
     let widths = [
         Constraint::Percentage(60),
@@ -145,15 +162,34 @@ fn draw_results(frame: &mut Frame, area: Rect, app: &App) {
         Constraint::Percentage(20),
     ];
 
+    let has_rows = !rows.is_empty();
+    let border_style = if app.active_section == ActiveSection::Results {
+        Style::default().fg(Color::Yellow)
+    } else {
+        Style::default()
+    };
     let table = Table::new(rows, widths)
         .header(header)
-        .block(Block::default().title("Results").borders(Borders::ALL));
+        .highlight_symbol("> ")
+        .highlight_style(Style::default().add_modifier(Modifier::REVERSED))
+        .block(
+            Block::default()
+                .title("Results  [Enter] Test  [d] Delete")
+                .borders(Borders::ALL)
+                .border_style(border_style),
+        );
+    let selected = if has_rows && app.active_section == ActiveSection::Results {
+        Some(app.selected_mirror)
+    } else {
+        None
+    };
+    let mut state = TableState::default().with_selected(selected);
 
-    frame.render_widget(table, area);
+    frame.render_stateful_widget(table, area, &mut state);
 }
 
 fn draw_fastest(frame: &mut Frame, area: Rect, app: &App) {
-    let text = app.core.fastest().unwrap_or("N/A");
+    let text = app.core.fastest().unwrap_or("");
     let widget = Paragraph::new(text)
         .style(Style::default().fg(Color::Cyan))
         .block(
@@ -165,11 +201,10 @@ fn draw_fastest(frame: &mut Frame, area: Rect, app: &App) {
 }
 
 fn draw_status(frame: &mut Frame, area: Rect, app: &App) {
-    let help = format!(
-        "{}   [q] Quit   [Enter] Run Benchmark   [up/down] Switch   [a] Add Mirror",
-        app.status
-    );
-    let widget = Paragraph::new(help).block(Block::default().borders(Borders::ALL));
+    let help = format!("{}", app.status);
+    let widget = Paragraph::new(help)
+        .style(Style::default().add_modifier(Modifier::BOLD))
+        .block(Block::default().title("Status").borders(Borders::ALL));
     frame.render_widget(widget, area);
 }
 
@@ -184,6 +219,14 @@ fn draw_input(frame: &mut Frame, area: Rect, app: &App) {
     frame.render_widget(widget, area);
 
     frame.set_cursor_position((area.x + 1 + app.cursor as u16, area.y + 1));
+}
+
+fn draw_error(frame: &mut Frame, area: Rect, app: &App) {
+    let err_msg = app.error.as_deref().unwrap_or("");
+    let widget = Paragraph::new(err_msg)
+        .style(Style::default().fg(Color::Red))
+        .block(Block::default().title("Error Log").borders(Borders::ALL));
+    frame.render_widget(widget, area);
 }
 
 // Local Mode enum (kept inside the TUI crate since it only affects UI state).
