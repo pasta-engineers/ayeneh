@@ -65,9 +65,9 @@ pub enum NpmCommand {
 
 #[derive(Subcommand)]
 pub enum UVCommand {
-    /// Install uv tools.
+    /// Mirrors `uv add` command.
     Add {
-        /// uv add arguments: tool names.
+        /// uv add arguments: package names.
         #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
         args: Vec<String>,
     },
