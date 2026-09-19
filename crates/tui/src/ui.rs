@@ -22,24 +22,24 @@ pub fn draw(frame: &mut Frame, app: &App) {
         .constraints([
             Constraint::Length(3), // title
             Constraint::Length(4), // package manager menu
-            Constraint::Min(6),    // results table
-            Constraint::Length(3), // fastest mirror
             Constraint::Length(3), // status / help
+            Constraint::Length(3), // fastest mirror
+            Constraint::Min(6),    // results table
             Constraint::Length(3), // error box
         ])
         .split(area);
 
     draw_title(frame, chunks[0]);
     draw_menu(frame, chunks[1], app);
-    draw_results(frame, chunks[2], app);
-    draw_fastest(frame, chunks[3], app);
 
     if app.mode == Mode::Input {
-        draw_input(frame, chunks[4], app);
+        draw_input(frame, chunks[2], app);
     } else {
-        draw_status(frame, chunks[4], app);
+        draw_status(frame, chunks[2], app);
     }
 
+    draw_fastest(frame, chunks[3], app);
+    draw_results(frame, chunks[4], app);
     draw_error(frame, chunks[5], app);
 }
 
@@ -202,10 +202,7 @@ fn draw_fastest(frame: &mut Frame, area: Rect, app: &App) {
 }
 
 fn draw_status(frame: &mut Frame, area: Rect, app: &App) {
-    let help = format!(
-        "{}",
-        app.status
-    );
+    let help = format!("{}", app.status);
     let widget = Paragraph::new(help).block(Block::default().title("Status").borders(Borders::ALL));
     frame.render_widget(widget, area);
 }
