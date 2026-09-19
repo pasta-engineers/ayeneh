@@ -2,11 +2,20 @@
 
 A terminal tool that installs packages from mirrors, benchmarks, and reports results, all with both simple TUI and CLI.
 
+## Supported Package Managers
+
+
+|Registry        |Package Manager        |
+|----------------|-----------------------|
+|PyPi|pip, uv|
+|npm |npm|
+
+
 ## Features
 
-- Benchmarks mirrors and ranks them by dowload speed
 - Install packages from mirrors. Switch to a different mirror if fails.
-- Interactive keyboard-only TUI built with `ratatui`
+- Benchmarks mirrors and ranks them by dowload speed.
+- Interactive keyboard-only TUI built with `ratatui`.
 
 ## Installation
 
@@ -16,7 +25,7 @@ Or build from source:
 - Make sure you have Rust (stable) installed via [rustup](https://rustup.rs)
 
 ```bash
-git clone <https://github.com/pasta-engineers/ayeneh.git>
+git clone https://github.com/pasta-engineers/ayeneh.git
 cd ayeneh
 make
 # or
@@ -59,6 +68,7 @@ Launch the TUI:
 ```bash
 ayeneh-tui
 ```
+CLI features are available in TUI as well.
 
 Install python packages from mirrors:
 
