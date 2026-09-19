@@ -17,7 +17,7 @@ Or build from source:
 
 ```bash
 git clone <https://github.com/pasta-engineers/ayeneh.git>
-cd mirror-tester
+cd ayeneh
 make
 # or
 cargo build
