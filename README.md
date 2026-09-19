@@ -96,33 +96,6 @@ Run the hourly scheduler (keeps benchmarking forever):
 ayeneh-cli schedule
 ```
 
-## Example TUI
-
-```
-+------------------------------------------------+
-| Mirror Benchmark                                |
-+------------------------------------------------+
-
-Package Manager:
-
-> PyPI
-  npm
-
---------------------------------------------
-Results
-
-Mirror                     Avg(ms)   Success
-pypi.org                   120       100%
-mirror1                    180       100%
-mirror2                    timeout   0%
---------------------------------------------
-
-Fastest Mirror:
-https://pypi.org/simple/
-
-[q] Quit   [Enter] Run Benchmark   [up/down] Switch
-```
-
 ## Example Report
 
 `reports/2026-07-12_14-30.json`:
