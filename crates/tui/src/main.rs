@@ -17,7 +17,7 @@ use ratatui::{backend::CrosstermBackend, Terminal};
 
 use crate::ui::Mode;
 
-const DEFAULT_STATUS: &str = "👀";
+const DEFAULT_STATUS: &str = "";
 
 // Which section is currently active.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -186,7 +186,7 @@ impl App {
         self.error = None;
         match self.core.start_benchmark() {
             Ok(()) => {
-                self.status = "Benchmarking...".to_string();
+                self.status = "Benchmarking started...".to_string();
             }
             Err(e) => {
                 self.status = e;
@@ -201,7 +201,7 @@ impl App {
         }
         let done = self.core.benchmark_step().await;
         if done {
-            self.status = "Benchmark complete.".to_string();
+            self.status = "Benchmarking is completed.".to_string();
         }
     }
 
@@ -287,7 +287,9 @@ async fn run_app_loop(
                         KeyCode::Right => app.move_right(),
                         KeyCode::Home => app.move_home(),
                         KeyCode::End => app.move_end(),
-                        _ => {}
+                        _ => {
+                            app.error = Some("Unknown key".to_string());
+                        }
                     }
                 } else {
                     match key.code {
@@ -319,7 +321,9 @@ async fn run_app_loop(
                             app.active_section = app.active_section.toggle();
                         }
                         KeyCode::Char('s') => app.submit_results(),
-                        _ => {}
+                        _ => {
+                            app.error = Some("Unknown key".to_string());
+                        }
                     }
                 }
             }
