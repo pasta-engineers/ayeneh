@@ -11,7 +11,7 @@ use ratatui::{
 
 use crate::{ActiveSection, App};
 
-const KEYMAPS: &str = "[q] Quit   [Enter] Run/Test   [up/down] Navigate   [Shift+Tab] Change Section   [a] Add Mirror    [s] Submit Results";
+const KEYMAPS: &str = "[q|ctrl+c] Quit   [Enter] Test   [s] Submit Results   [up/down] Navigate   [Shift+Tab] Change Section   [a] Add Mirror";
 
 /// Draws the entire application UI into the given frame.
 pub fn draw(frame: &mut Frame, app: &App) {

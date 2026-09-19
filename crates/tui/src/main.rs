@@ -9,9 +9,7 @@ use ayeneh_cli::{run_command, Cli};
 use ayeneh_core::app::App as CoreApp;
 use clap::Parser;
 use crossterm::{
-    event::{self, Event, KeyCode, KeyEventKind},
-    execute,
-    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+    event::{self, Event, KeyCode, KeyEventKind, KeyModifiers}, execute, terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
 use ratatui::{backend::CrosstermBackend, Terminal};
 
@@ -294,6 +292,7 @@ async fn run_app_loop(
                 } else {
                     match key.code {
                         KeyCode::Char('q') => app.should_quit = true,
+                        KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => app.should_quit = true,
                         KeyCode::Up | KeyCode::Down => match app.active_section {
                             ActiveSection::Registries => {
                                 app.core.selection = app.core.selection.toggle();
