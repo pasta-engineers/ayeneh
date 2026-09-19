@@ -44,8 +44,8 @@ pub fn draw(frame: &mut Frame, app: &App) {
 }
 
 fn draw_title(frame: &mut Frame, area: Rect) {
-    let title = Paragraph::new(KEYMAPS)
-        .block(Block::default().borders(Borders::ALL).title("Keymaps: "));
+    let title =
+        Paragraph::new(KEYMAPS).block(Block::default().borders(Borders::ALL).title("Keymaps: "));
     frame.render_widget(title, area);
 }
 

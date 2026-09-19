@@ -163,10 +163,10 @@ impl RegistryData {
 /// Returns the directory containing the registry configuration files.
 ///
 /// Resolution order:
-/// 1. `MIRROR_DATA_DIR` environment variable (if set).
+/// 1. `AYN_DATA_DIR` environment variable (if set).
 /// 2. `./data`.
 fn data_dir() -> PathBuf {
-    std::env::var("MIRROR_DATA_DIR")
+    std::env::var("AYN_DATA_DIR")
         .map(PathBuf::from)
         .unwrap_or_else(|_| PathBuf::from("./data"))
 }
@@ -186,15 +186,15 @@ mod tests {
 
     impl DataDirEnv {
         fn set(value: impl Into<std::ffi::OsString>) -> Self {
-            let previous = std::env::var_os("MIRROR_DATA_DIR");
+            let previous = std::env::var_os("AYN_DATA_DIR");
             let value = value.into();
-            unsafe { std::env::set_var("MIRROR_DATA_DIR", value) };
+            unsafe { std::env::set_var("AYN_DATA_DIR", value) };
             Self(previous)
         }
 
         fn remove() -> Self {
-            let previous = std::env::var_os("MIRROR_DATA_DIR");
-            unsafe { std::env::remove_var("MIRROR_DATA_DIR") };
+            let previous = std::env::var_os("AYN_DATA_DIR");
+            unsafe { std::env::remove_var("AYN_DATA_DIR") };
             Self(previous)
         }
     }
@@ -202,8 +202,8 @@ mod tests {
     impl Drop for DataDirEnv {
         fn drop(&mut self) {
             match self.0.take() {
-                Some(value) => unsafe { std::env::set_var("MIRROR_DATA_DIR", value) },
-                None => unsafe { std::env::remove_var("MIRROR_DATA_DIR") },
+                Some(value) => unsafe { std::env::set_var("AYN_DATA_DIR", value) },
+                None => unsafe { std::env::remove_var("AYN_DATA_DIR") },
             }
         }
     }
@@ -219,7 +219,7 @@ mod tests {
     }
 
     #[test]
-    fn data_dir_uses_mirror_data_dir_when_set() {
+    fn data_dir_uses_ayn_data_dir_when_set() {
         let _lock = env_lock()
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());

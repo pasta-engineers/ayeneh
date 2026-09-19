@@ -6,16 +6,10 @@ use tokio::process::Command;
 
 /// Resolves the uv command
 async fn resolve_uv() -> Result<&'static str, Box<dyn std::error::Error>> {
-    if Command::new("uv")
-        .arg("--version")
-        .output()
-        .await
-        .is_ok()
-    {
+    if Command::new("uv").arg("--version").output().await.is_ok() {
         return Ok("uv");
     }
     Err("uv not found on PATH.".into())
-
 }
 
 /// Installs packages via the first
@@ -49,5 +43,4 @@ pub async fn add(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
     }
 
     Err(format!("All mirrors failed, last error: {last_status}").into())
-
 }

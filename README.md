@@ -54,11 +54,11 @@ Runtime behavior can be tuned without rebuilding:
 
 | Variable                          | Meaning                                | Default                   |
 |-----------------------------------|----------------------------------------|---------------------------|
-| `MIRROR_DATA_DIR`                 | Directory holding `pypi.json`/`npm.json` | `./data` |
-| `MIRROR_REPORTS_DIR`              | Directory for generated reports        | auto-detected `reports/`  |
-| `MIRROR_TIMEOUT_SECS`             | Per-attempt HTTP timeout (seconds)     | `15`                      |
-| `MIRROR_ATTEMPTS`                 | Benchmark attempts per mirror          | `3`                       |
-| `MIRROR_SCHEDULE_INTERVAL_SECS`   | Delay between scheduler cycles (seconds) | `3600`                    |
+| `AYN_DATA_DIR`                    | Directory holding `pypi.json`/`npm.json` | `./data` |
+| `AYN_REPORTS_DIR`                 | Directory for generated reports        | auto-detected `reports/`  |
+| `AYN_TIMEOUT`                | Per-attempt HTTP timeout (seconds)     | `15`                      |
+| `AYN_ATTEMPTS`                    | Benchmark attempts per mirror          | `3`                       |
+| `AYN_SCHEDULE_INTERVAL_SECS`      | Delay between scheduler cycles (seconds) | `3600`                    |
 
 The numeric variables fall back to their default if unset or given a
 non-numeric, zero, or negative value.
@@ -139,10 +139,10 @@ program reads them from `./data`:
 }
 ```
 
-Set `MIRROR_DATA_DIR` when the registry files are stored elsewhere:
+Set `AYN_DATA_DIR` when the registry files are stored elsewhere:
 
 ```bash
-MIRROR_DATA_DIR=/opt/mirror/registries ayeneh-cli run pypi
+AYN_DATA_DIR=/opt/mirror/registries ayeneh-cli run pypi
 ```
 
 Edit these JSON files to add or remove mirrors, or to change the package used

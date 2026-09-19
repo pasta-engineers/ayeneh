@@ -93,13 +93,13 @@ differ only in how they present results to the user.
 ## Data Files
 
 Mirror lists live in `pypi.json` and `npm.json` under the configured registry
-directory. The `MIRROR_DATA_DIR` environment variable overrides the default
+directory. The `AYN_DATA_DIR` environment variable overrides the default
 directory `./data`.
 
 Both files retain the same shape and define the sample `package` and ordered
 `mirrors` list for their package manager.
 
-Reports are written under `reports/`. `MIRROR_REPORTS_DIR` can override the
+Reports are written under `reports/`. `AYN_REPORTS_DIR` can override the
 report output directory.
 
 ## Benchmark Process
@@ -110,9 +110,9 @@ workflow rather than a bare HTTP ping.
 
 For each mirror URL:
 
-1. Build a `reqwest::Client` with a `MIRROR_TIMEOUT_SECS`-second timeout
+1. Build a `reqwest::Client` with a `AYN_TIMEOUT`-second timeout
    (default 15).
-2. Run `MIRROR_ATTEMPTS` attempts, one at a time (default 3). Each attempt:
+2. Run `AYN_ATTEMPTS` attempts, one at a time (default 3). Each attempt:
    1. Resolves the package's direct download URL on that mirror:
       - **PyPI**: fetches the PEP 503 "simple" index page
         (`{mirror}{package}/`) and extracts the first `href` pointing at
@@ -154,7 +154,7 @@ entries, and the fastest reachable mirror. The report is serialized with
 
 `scheduler.rs` runs an infinite loop: for each package manager (pypi, then
 npm), load mirrors, benchmark, and save a report. After both have run, it
-sleeps for `MIRROR_SCHEDULE_INTERVAL_SECS` seconds (default one hour, via
+sleeps for `AYN_SCHEDULE_INTERVAL_SECS` seconds (default one hour, via
 `tokio::time::sleep`) and repeats. There is no cron
 integration or daemonization — the process must stay running in the
 foreground (or under a process manager of the user's choosing).
@@ -166,8 +166,8 @@ for any value that is unset, empty, non-numeric, or not positive.
 
 | Variable                          | Meaning                              | Default |
 |-----------------------------------|--------------------------------------|---------|
-| `MIRROR_DATA_DIR`                 | Directory holding the registry JSON  | `./data` |
-| `MIRROR_REPORTS_DIR`              | Directory for generated reports      | auto-detected `reports/`  |
-| `MIRROR_TIMEOUT_SECS`             | Per-attempt HTTP timeout             | `15`                      |
-| `MIRROR_ATTEMPTS`                 | Attempts per mirror                  | `3`                       |
-| `MIRROR_SCHEDULE_INTERVAL_SECS`   | Delay between scheduler cycles       | `3600`                    |
+| `AYN_DATA_DIR`                    | Directory holding the registry JSON  | `./data` |
+| `AYN_REPORTS_DIR`                 | Directory for generated reports      | auto-detected `reports/`  |
+| `AYN_TIMEOUT`                | Per-attempt HTTP timeout             | `15`                      |
+| `AYN_ATTEMPTS`                    | Attempts per mirror                  | `3`                       |
+| `AYN_SCHEDULE_INTERVAL_SECS`      | Delay between scheduler cycles       | `3600`                    |

@@ -68,11 +68,11 @@ impl Report {
     }
 }
 
-/// Returns the path to the `reports/` directory. Uses `MIRROR_REPORTS_DIR`
+/// Returns the path to the `reports/` directory. Uses `AYN_REPORTS_DIR`
 /// if set, otherwise falls back to a `reports/` directory found by walking
 /// up from the executable (matching how data files are resolved).
 fn reports_dir() -> PathBuf {
-    if let Ok(custom) = std::env::var("MIRROR_REPORTS_DIR") {
+    if let Ok(custom) = std::env::var("AYN_REPORTS_DIR") {
         return PathBuf::from(custom);
     }
 

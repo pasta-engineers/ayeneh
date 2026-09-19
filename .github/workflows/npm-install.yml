@@ -51,7 +51,7 @@ jobs:
     - name: Install packages via mirrors
       working-directory: /tmp/npmtest
       env:
-        MIRROR_DATA_DIR: ${{ github.workspace }}/data
+        AYN_DATA_DIR: ${{ github.workspace }}/data
       run: |
         "${{ github.workspace }}/target/release/ayeneh-cli" npm install
 

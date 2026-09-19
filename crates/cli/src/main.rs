@@ -1,7 +1,7 @@
 //! Mirror Benchmark CLI entry point.
 
+use ayeneh_cli::{run_command, Cli};
 use clap::Parser;
-use ayeneh_cli::{Cli, run_command};
 
 #[tokio::main]
 async fn main() {

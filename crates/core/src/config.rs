@@ -26,10 +26,10 @@ impl Config {
     /// missing or invalid value.
     pub fn from_env() -> Self {
         Config {
-            timeout_secs: positive_var("MIRROR_TIMEOUT_SECS", DEFAULT_TIMEOUT_SECS),
-            attempts: positive_var("MIRROR_ATTEMPTS", DEFAULT_ATTEMPTS),
+            timeout_secs: positive_var("AYN_TIMEOUT", DEFAULT_TIMEOUT_SECS),
+            attempts: positive_var("AYN_ATTEMPTS", DEFAULT_ATTEMPTS),
             schedule_interval_secs: positive_var(
-                "MIRROR_SCHEDULE_INTERVAL_SECS",
+                "AYN_SCHEDULE_INTERVAL_SECS",
                 DEFAULT_SCHEDULE_INTERVAL_SECS,
             ),
         }
@@ -120,84 +120,84 @@ mod tests {
     #[test]
     fn timeout_defaults_when_unset() {
         let _lock = env_lock().lock().unwrap_or_else(|p| p.into_inner());
-        let _env = EnvVar::unset("MIRROR_TIMEOUT_SECS");
+        let _env = EnvVar::unset("AYN_TIMEOUT");
         assert_eq!(Config::from_env().timeout_secs, 15);
     }
 
     #[test]
     fn timeout_uses_env_when_valid() {
         let _lock = env_lock().lock().unwrap_or_else(|p| p.into_inner());
-        let _env = EnvVar::set("MIRROR_TIMEOUT_SECS", "42");
+        let _env = EnvVar::set("AYN_TIMEOUT", "42");
         assert_eq!(Config::from_env().timeout_secs, 42);
     }
 
     #[test]
     fn timeout_falls_back_when_non_numeric() {
         let _lock = env_lock().lock().unwrap_or_else(|p| p.into_inner());
-        let _env = EnvVar::set("MIRROR_TIMEOUT_SECS", "fast");
+        let _env = EnvVar::set("AYN_TIMEOUT", "fast");
         assert_eq!(Config::from_env().timeout_secs, 15);
     }
 
     #[test]
     fn timeout_falls_back_when_zero() {
         let _lock = env_lock().lock().unwrap_or_else(|p| p.into_inner());
-        let _env = EnvVar::set("MIRROR_TIMEOUT_SECS", "0");
+        let _env = EnvVar::set("AYN_TIMEOUT", "0");
         assert_eq!(Config::from_env().timeout_secs, 15);
     }
 
     #[test]
     fn attempts_defaults_when_unset() {
         let _lock = env_lock().lock().unwrap_or_else(|p| p.into_inner());
-        let _env = EnvVar::unset("MIRROR_ATTEMPTS");
+        let _env = EnvVar::unset("AYN_ATTEMPTS");
         assert_eq!(Config::from_env().attempts, 3);
     }
 
     #[test]
     fn attempts_uses_env_when_valid() {
         let _lock = env_lock().lock().unwrap_or_else(|p| p.into_inner());
-        let _env = EnvVar::set("MIRROR_ATTEMPTS", "5");
+        let _env = EnvVar::set("AYN_ATTEMPTS", "5");
         assert_eq!(Config::from_env().attempts, 5);
     }
 
     #[test]
     fn attempts_falls_back_when_non_numeric() {
         let _lock = env_lock().lock().unwrap_or_else(|p| p.into_inner());
-        let _env = EnvVar::set("MIRROR_ATTEMPTS", "many");
+        let _env = EnvVar::set("AYN_ATTEMPTS", "many");
         assert_eq!(Config::from_env().attempts, 3);
     }
 
     #[test]
     fn attempts_falls_back_when_zero() {
         let _lock = env_lock().lock().unwrap_or_else(|p| p.into_inner());
-        let _env = EnvVar::set("MIRROR_ATTEMPTS", "0");
+        let _env = EnvVar::set("AYN_ATTEMPTS", "0");
         assert_eq!(Config::from_env().attempts, 3);
     }
 
     #[test]
     fn interval_defaults_when_unset() {
         let _lock = env_lock().lock().unwrap_or_else(|p| p.into_inner());
-        let _env = EnvVar::unset("MIRROR_SCHEDULE_INTERVAL_SECS");
+        let _env = EnvVar::unset("AYN_SCHEDULE_INTERVAL_SECS");
         assert_eq!(Config::from_env().schedule_interval_secs, 3600);
     }
 
     #[test]
     fn interval_uses_env_when_valid() {
         let _lock = env_lock().lock().unwrap_or_else(|p| p.into_inner());
-        let _env = EnvVar::set("MIRROR_SCHEDULE_INTERVAL_SECS", "120");
+        let _env = EnvVar::set("AYN_SCHEDULE_INTERVAL_SECS", "120");
         assert_eq!(Config::from_env().schedule_interval_secs, 120);
     }
 
     #[test]
     fn interval_falls_back_when_non_numeric() {
         let _lock = env_lock().lock().unwrap_or_else(|p| p.into_inner());
-        let _env = EnvVar::set("MIRROR_SCHEDULE_INTERVAL_SECS", "hourly");
+        let _env = EnvVar::set("AYN_SCHEDULE_INTERVAL_SECS", "hourly");
         assert_eq!(Config::from_env().schedule_interval_secs, 3600);
     }
 
     #[test]
     fn interval_falls_back_when_zero() {
         let _lock = env_lock().lock().unwrap_or_else(|p| p.into_inner());
-        let _env = EnvVar::set("MIRROR_SCHEDULE_INTERVAL_SECS", "0");
+        let _env = EnvVar::set("AYN_SCHEDULE_INTERVAL_SECS", "0");
         assert_eq!(Config::from_env().schedule_interval_secs, 3600);
     }
 }

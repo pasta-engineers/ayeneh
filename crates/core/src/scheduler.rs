@@ -9,7 +9,7 @@ use std::time::Duration;
 use tokio::time::sleep;
 
 /// Runs an infinite benchmark-and-report loop for every supported
-/// registry, sleeping for `MIRROR_SCHEDULE_INTERVAL_SECS` (default one
+/// registry, sleeping for `AYN_SCHEDULE_INTERVAL_SECS` (default one
 /// hour) between cycles.
 ///
 /// This never returns under normal operation; it is intended to be the

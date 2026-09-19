@@ -28,7 +28,7 @@ pub struct BenchmarkResult {
 }
 
 /// Benchmarks a single mirror by downloading `package` from it a configurable
-/// number of times (`MIRROR_ATTEMPTS`), averaging the latency of the
+/// number of times (`AYN_ATTEMPTS`), averaging the latency of the
 /// successful downloads.
 ///
 /// Always returns a [`BenchmarkResult`]; failures and timeouts are recorded
