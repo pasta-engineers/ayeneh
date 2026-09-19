@@ -64,10 +64,15 @@ The numeric variables fall back to their default if unset or given a
 non-numeric, zero, or negative value.
 
 Launch the TUI:
-
 ```bash
 ayeneh-tui
 ```
+![TUI screenshot](./docs/tui.png)
+
+In TUI, you can:
+- Run benchmarks
+- Reorder mirrors based on benchmark results, so faster mirrors are listed first in installation processes
+- Add/remove mirrors manually
 CLI features are available in TUI as well.
 
 Install python packages from mirrors:
