@@ -1,3 +1,5 @@
+![Ayeneh — install packages through mirrors, mirror testing and benchmarking](./docs/banner.webp)
+
 # Ayeneh
 
 A terminal tool that installs packages from mirrors, benchmarks, and reports results, all with both simple TUI and CLI.
