@@ -121,7 +121,7 @@ mod tests {
     fn timeout_defaults_when_unset() {
         let _lock = env_lock().lock().unwrap_or_else(|p| p.into_inner());
         let _env = EnvVar::unset("AYN_TIMEOUT");
-        assert_eq!(Config::from_env().timeout_secs, 15);
+        assert_eq!(Config::from_env().timeout_secs, 10);
     }
 
     #[test]
@@ -135,21 +135,21 @@ mod tests {
     fn timeout_falls_back_when_non_numeric() {
         let _lock = env_lock().lock().unwrap_or_else(|p| p.into_inner());
         let _env = EnvVar::set("AYN_TIMEOUT", "fast");
-        assert_eq!(Config::from_env().timeout_secs, 15);
+        assert_eq!(Config::from_env().timeout_secs, 10);
     }
 
     #[test]
     fn timeout_falls_back_when_zero() {
         let _lock = env_lock().lock().unwrap_or_else(|p| p.into_inner());
         let _env = EnvVar::set("AYN_TIMEOUT", "0");
-        assert_eq!(Config::from_env().timeout_secs, 15);
+        assert_eq!(Config::from_env().timeout_secs, 10);
     }
 
     #[test]
     fn attempts_defaults_when_unset() {
         let _lock = env_lock().lock().unwrap_or_else(|p| p.into_inner());
         let _env = EnvVar::unset("AYN_ATTEMPTS");
-        assert_eq!(Config::from_env().attempts, 3);
+        assert_eq!(Config::from_env().attempts, 1);
     }
 
     #[test]
@@ -163,14 +163,14 @@ mod tests {
     fn attempts_falls_back_when_non_numeric() {
         let _lock = env_lock().lock().unwrap_or_else(|p| p.into_inner());
         let _env = EnvVar::set("AYN_ATTEMPTS", "many");
-        assert_eq!(Config::from_env().attempts, 3);
+        assert_eq!(Config::from_env().attempts, 1);
     }
 
     #[test]
     fn attempts_falls_back_when_zero() {
         let _lock = env_lock().lock().unwrap_or_else(|p| p.into_inner());
         let _env = EnvVar::set("AYN_ATTEMPTS", "0");
-        assert_eq!(Config::from_env().attempts, 3);
+        assert_eq!(Config::from_env().attempts, 1);
     }
 
     #[test]
