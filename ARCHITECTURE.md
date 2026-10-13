@@ -47,6 +47,8 @@ The project is a Cargo workspace with three crates:
 | `app.rs`         | Core application state (selection, results, benchmark loop)  |
 | `benchmark.rs`   | Downloads a real package from each mirror and measures latency |
 | `config.rs`      | Reads env-driven tuning (timeout, attempts, schedule interval) |
+| `gradle.rs`      | Runs Gradle dependency tasks and coordinates via configured Maven mirrors with fallback |
+| `maven.rs`       | Runs Maven lifecycle/plugin goals via configured Maven mirrors with fallback |
 | `mirror.rs`      | Loads the sample package name + mirror URL list from the registry dir |
 | `npm.rs`         | Installs npm packages via configured mirrors with fallback  |
 | `pip.rs`         | Installs pip packages via configured mirrors with fallback  |
@@ -70,7 +72,7 @@ The project is a Cargo workspace with three crates:
 
 ```mermaid
 flowchart TD
-    A[data/pypi.json or data/npm.json] --> B[mirror.rs: load_mirrors]
+    A[data/pypi.json, data/npm.json or data/gradle.json] --> B[mirror.rs: load_mirrors]
     B --> C[benchmark.rs: benchmark_all]
     C --> J[Download + delete package per mirror]
     J --> D{Which frontend?}
@@ -90,14 +92,24 @@ which mirrors to test and which package to actually download from them.
 The CLI and TUI both call into the same `ayeneh-core` operations; they
 differ only in how they present results to the user.
 
+Java dependency commands run in the current project directory. Gradle commands
+receive a temporary init script that replaces project, plugin, settings, and
+buildscript repositories with one configured mirror. Maven commands receive a
+temporary `settings.xml` with a `mirrorOf=*` entry. The temporary files are
+removed after each attempt; project build files are not modified. `sync` is an
+Ayeneh alias that resolves every Gradle/Maven configuration rather than an IDE
+operation.
+
 ## Data Files
 
-Mirror lists live in `pypi.json` and `npm.json` under the configured registry
-directory. The `AYN_DATA_DIR` environment variable overrides the default
-directory `./data`.
+Mirror lists live in `pypi.json`, `npm.json`, and `gradle.json` under the
+configured registry directory. The `AYN_DATA_DIR` environment variable
+overrides the default directory `./data`.
 
-Both files retain the same shape and define the sample `package` and ordered
-`mirrors` list for their package manager.
+All files retain the same shape and define the sample `package` and ordered
+`mirrors` list for their package manager. For Gradle the `package` is a pair of
+Maven coordinates (`group:artifact`) and every mirror is a Maven repository
+root.
 
 Reports are written under `reports/`. `AYN_REPORTS_DIR` can override the
 report output directory.
@@ -120,6 +132,11 @@ For each mirror URL:
         against the index page.
       - **npm**: fetches the registry's `{mirror}{package}/latest`
         shortcut and reads `dist.tarball` from the returned JSON.
+      - **Gradle/Maven**: expands the `group:artifact` sample package into a
+        `maven-metadata.xml` URL (e.g.
+        `{mirror}com/google/guava/guava/maven-metadata.xml`) and reads the
+        `<release>` version, falling back to `<latest>` and then to the last
+        listed `<version>`.
    2. Downloads the resolved file's full bytes.
    3. Writes the bytes to a uniquely-named file in the OS temp directory,
       then immediately deletes it.
@@ -152,8 +169,8 @@ entries, and the fastest reachable mirror. The report is serialized with
 
 ## Scheduler
 
-`scheduler.rs` runs an infinite loop: for each package manager (pypi, then
-npm), load mirrors, benchmark, and save a report. After both have run, it
+`scheduler.rs` runs an infinite loop: for each package manager (pypi, npm,
+then gradle), load mirrors, benchmark, and save a report. After all have run, it
 sleeps for `AYN_SCHEDULE_INTERVAL_SECS` seconds (default one hour, via
 `tokio::time::sleep`) and repeats. There is no cron
 integration or daemonization — the process must stay running in the

@@ -11,6 +11,7 @@ A terminal tool that installs packages from mirrors, benchmarks, and reports res
 |----------------|-----------------------|
 |PyPi|pip, uv|
 |npm |npm|
+|Gradle/Maven|gradle, mvn (Maven repositories)|
 
 
 ## Features
@@ -48,6 +49,7 @@ Get help:
 ayeneh-cli --help
 ayeneh-cli pip --help
 ayeneh-cli npm --help
+ayeneh-cli gradle --help
 ```
 
 ### Environment Variables
@@ -56,7 +58,7 @@ Runtime behavior can be tuned without rebuilding:
 
 | Variable                          | Meaning                                | Default                   |
 |-----------------------------------|----------------------------------------|---------------------------|
-| `AYN_DATA_DIR`                    | Directory holding `pypi.json`/`npm.json` | `./data` |
+| `AYN_DATA_DIR`                    | Directory holding the registry JSON files | `./data` |
 | `AYN_REPORTS_DIR`                 | Directory for generated reports        | auto-detected `reports/`  |
 | `AYN_TIMEOUT`                | Per-attempt HTTP timeout (seconds)     | `15`                      |
 | `AYN_ATTEMPTS`                    | Benchmark attempts per mirror          | `3`                       |
@@ -94,14 +96,55 @@ Install npm packages from mirrors:
 ayeneh-cli npm install <package>
 ```
 
+Run Gradle dependency-resolving project commands through the configured Maven
+mirrors. The command runs in the current Gradle project directory and retries
+with the next mirror if dependency resolution fails:
+
+```bash
+ayeneh-cli gradle build
+ayeneh-cli gradle sync
+ayeneh-cli gradle test --refresh-dependencies
+```
+
+`sync` is an Ayeneh command that resolves every resolvable Gradle
+configuration. It is useful from a terminal or CI; IDE sync itself is not a
+portable Gradle CLI task. Any other Gradle task is forwarded as well.
+
+Run Maven lifecycle phases and plugin goals through the same mirror list:
+
+```bash
+ayeneh-cli maven compile
+ayeneh-cli maven test
+ayeneh-cli maven package
+ayeneh-cli maven verify
+ayeneh-cli maven install
+ayeneh-cli maven sync
+```
+
+`sync` maps to Maven's `dependency:resolve`. Maven commands also retry with the
+next configured mirror and do not modify `pom.xml` or other project files.
+
+For direct coordinate downloads, the existing Gradle shortcut remains
+available. The version may be omitted, in which case Gradle resolves the
+newest available one:
+
+```bash
+ayeneh-cli gradle install com.google.guava:guava:34.0.0-jre
+ayeneh-cli gradle install com.google.guava:guava
+```
+
+Gradle artifacts are downloaded into Gradle's own dependency cache, so a later
+build that uses the same coordinates can reuse them.
+
 Run a one-off benchmark from the command line:
 
 ```bash
 ayeneh-cli run pypi
 ayeneh-cli run npm
+ayeneh-cli run gradle
 ```
 
-Generate a JSON report for both package managers:
+Generate a JSON report for all package managers:
 
 ```bash
 ayeneh-cli report
@@ -131,9 +174,9 @@ ayeneh-cli schedule
 
 ## Mirror Lists
 
-`pypi.json` and `npm.json` each define the sample `package` to download during
-benchmarking and the list of `mirrors` to test it against. By default, the
-program reads them from `./data`:
+`pypi.json`, `npm.json`, and `gradle.json` each define the sample `package` to
+download during benchmarking and the list of `mirrors` to test it against. By
+default, the program reads them from `./data`:
 
 ```json
 {
@@ -155,6 +198,11 @@ AYN_DATA_DIR=/opt/mirror/registries ayeneh-cli run pypi
 Edit these JSON files to add or remove mirrors, or to change the package used
 for benchmarking. Mirror lists are configured statically — no network
 scraping is performed to discover them.
+
+In `gradle.json` the `package` is a pair of Maven coordinates
+(`group:artifact`, e.g. `com.google.guava:guava`) and each mirror is a Maven
+repository root, so the same list can be used as a `maven { url ... }`
+repository in Gradle or Maven.
 
 ### Docker
 
