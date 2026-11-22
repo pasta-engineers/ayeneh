@@ -1,4 +1,4 @@
-//! Mirror Benchmark TUI entry point.
+//! Ayeneh TUI entry point.
 
 mod ui;
 

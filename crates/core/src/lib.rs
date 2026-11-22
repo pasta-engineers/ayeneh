@@ -1,4 +1,4 @@
-//! Mirror Benchmark core library.
+//! Ayeneh core library.
 //!
 //! Contains all shared application/domain functionality including benchmarking,
 //! mirror loading, pip installation, reporting, and scheduling.

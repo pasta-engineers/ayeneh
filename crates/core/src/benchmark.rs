@@ -1,4 +1,4 @@
-//! Mirror benchmarking logic.
+//! Ayeneh logic.
 //!
 //! Benchmarking works by actually downloading a real package from each
 //! mirror (never installing it) and timing the whole round trip: looking up

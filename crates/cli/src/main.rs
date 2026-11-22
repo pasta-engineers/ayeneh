@@ -1,4 +1,4 @@
-//! Mirror Benchmark CLI entry point.
+//! Ayeneh CLI entry point.
 
 use ayeneh_cli::{run_command, Cli};
 use clap::Parser;

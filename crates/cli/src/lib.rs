@@ -1,4 +1,4 @@
-//! Mirror Benchmark CLI shared logic, exposed as a library so other crates
+//! Ayeneh CLI shared logic, exposed as a library so other crates
 //! (e.g. the TUI) can reuse the same command handlers.
 
 use ayeneh_core::benchmark::{benchmark_all, BenchmarkResult};
@@ -7,7 +7,7 @@ use ayeneh_core::report::Report;
 use ayeneh_core::{gradle, maven, npm, pip, scheduler, uv};
 use clap::{Parser, Subcommand};
 
-/// Mirror Benchmark: benchmark package registry mirrors and find the fastest one.
+/// Ayeneh: install packages with no worries.
 #[derive(Parser)]
 #[command(name = "ayeneh-cli", version, about)]
 pub struct Cli {
