@@ -49,14 +49,18 @@ impl Report {
         }
     }
 
-    /// Saves the report as JSON to `reports/YYYY-MM-DD_HH-MM.json`,
+    /// Saves the report as JSON to `reports/REGISTRY_YYYY-MM-DD_HH-MM.json`,
     /// creating the `reports/` directory if needed. Returns the path
     /// the report was written to.
     pub fn save(&self) -> io::Result<PathBuf> {
         let reports_dir = reports_dir();
         fs::create_dir_all(&reports_dir)?;
 
-        let filename = format!("{}.json", Local::now().format("%Y-%m-%d_%H-%M"));
+        let filename = format!(
+            "{}_{}.json",
+            self.registry,
+            Local::now().format("%Y-%m-%d_%H-%M")
+        );
         let path = reports_dir.join(filename);
 
         let json = serde_json::to_string_pretty(self)

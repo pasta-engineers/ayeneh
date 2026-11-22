@@ -164,7 +164,7 @@ only proxy metadata.
 `report.rs` converts a `Vec<BenchmarkResult>` into a `Report` struct
 containing the package manager name, an RFC 3339 timestamp, per-mirror
 entries, and the fastest reachable mirror. The report is serialized with
-`serde_json` and written to `reports/YYYY-MM-DD_HH-MM.json`, creating the
+`serde_json` and written to `reports/REGISTRY_YYYY-MM-DD_HH-MM.json`, creating the
 `reports/` directory if it doesn't exist.
 
 ## Scheduler

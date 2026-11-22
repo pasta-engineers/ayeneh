@@ -22,8 +22,11 @@ pub enum Commands {
         /// Which registry to benchmark: "pypi", "npm", "gradle", or "maven".
         registry: String,
     },
-    /// Run benchmarks for every registry and write a JSON report to reports/.
-    Report,
+    /// Benchmark a registry and write a JSON report (defaults to all registries).
+    Report {
+        #[command(subcommand)]
+        registry: Option<ReportCommand>,
+    },
     /// Continuously benchmark and save reports every hour.
     Schedule,
     /// Install Python packages via PyPI mirrors, falling back to the next mirror on failure.
@@ -58,6 +61,18 @@ pub enum Commands {
         #[command(subcommand)]
         command: MavenCommand,
     },
+}
+
+#[derive(Subcommand, Debug, Clone, Copy)]
+pub enum ReportCommand {
+    /// Generate reports for all registries.
+    All,
+    /// Generate a PyPI report.
+    Pypi,
+    /// Generate an npm report.
+    Npm,
+    /// Generate a Gradle/Maven report.
+    Gradle,
 }
 
 #[derive(Subcommand)]
@@ -156,8 +171,8 @@ pub fn print_results(results: &[BenchmarkResult]) {
 }
 
 /// Runs benchmarks for every registry and saves a JSON report for each.
-pub async fn run_report() -> Result<(), Box<dyn std::error::Error>> {
-    for registry in Registry::ALL {
+async fn run_reports(registries: &[Registry]) -> Result<(), Box<dyn std::error::Error>> {
+    for &registry in registries {
         let config = load_mirrors(registry)?;
         println!("Benchmarking {}...", registry.name());
 
@@ -178,7 +193,12 @@ pub async fn run_report() -> Result<(), Box<dyn std::error::Error>> {
 pub async fn run_command(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
     match cli.command {
         Some(Commands::Run { registry }) => run_once(&registry).await,
-        Some(Commands::Report) => run_report().await,
+        Some(Commands::Report { registry }) => match registry.unwrap_or(ReportCommand::All) {
+            ReportCommand::All => run_reports(&Registry::ALL).await,
+            ReportCommand::Pypi => run_reports(&[Registry::PyPi]).await,
+            ReportCommand::Npm => run_reports(&[Registry::Npm]).await,
+            ReportCommand::Gradle => run_reports(&[Registry::Gradle]).await,
+        },
         Some(Commands::Schedule) => {
             scheduler::run().await;
             Ok(())

@@ -164,11 +164,16 @@ ayeneh-cli run gradle
 
 Each attempt resolves and downloads a real sample package, then deletes its temporary file; it does not install the package. Results show the average elapsed time of successful attempts, including resolution and download, and the percentage of attempts that succeeded. A mirror's metadata may point the archive download to another host. Results therefore reflect the full request path rather than throughput alone.
 
-Generate a JSON report for all package managers:
+Generate a JSON report for one registry, or all registries:
 
 ```bash
-ayeneh-cli report
+ayeneh-cli report pypi
+ayeneh-cli report npm
+ayeneh-cli report gradle
+ayeneh-cli report all
 ```
+
+`ayeneh-cli report` without a subcommand also reports on all registries.
 
 Run the scheduler in the foreground (one hour between completed cycles by default; stop it with Ctrl+C):
 
@@ -178,7 +183,7 @@ ayeneh-cli schedule
 
 ## Example Report
 
-`reports/2026-07-12_14-30.json`:
+`reports/pypi_2026-07-12_14-30.json`:
 
 ```json
 {
@@ -192,7 +197,7 @@ ayeneh-cli schedule
 }
 ```
 
-`latency` is in milliseconds, `success` is a percentage, and `best` is `null` if no mirror succeeds. Reports use a local timestamp in their filename with minute precision. Reports saved within the same minute use the same filename and overwrite one another, including reports for different registries.
+`latency` is in milliseconds, `success` is a percentage, and `best` is `null` if no mirror succeeds. Report filenames include the registry and a local timestamp with minute precision. Reports for the same registry saved within the same minute overwrite one another.
 
 ## Configuration
 
@@ -285,7 +290,7 @@ To retain reports after a container exits, mount a host directory:
 
 ```bash
 mkdir -p reports
-docker run --rm -v "$(pwd)/reports:/app/reports" ayeneh-cli ayeneh-cli report
+docker run --rm -v "$(pwd)/reports:/app/reports" ayeneh-cli ayeneh-cli report all
 ```
 
 ## Troubleshooting
