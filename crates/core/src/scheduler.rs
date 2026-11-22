@@ -1,4 +1,4 @@
-//! A simple scheduler that repeatedly benchmarks all registries and saves
+//! A simple scheduler that repeatedly benchmarks selected registries and saves
 //! a report, sleeping for a configurable interval between runs.
 
 use crate::benchmark::benchmark_all;
@@ -15,12 +15,16 @@ use tokio::time::sleep;
 /// This never returns under normal operation; it is intended to be the
 /// entire lifetime of the `schedule` subcommand.
 pub async fn run() {
+    run_selected(&Registry::ALL).await;
+}
+
+/// Runs the scheduler for the given registries.
+pub async fn run_selected(registries: &[Registry]) {
     let cfg = Config::from_env();
     let interval = Duration::from_secs(cfg.schedule_interval_secs);
-    let registries = Registry::ALL;
 
     loop {
-        for &registry in &registries {
+        for &registry in registries {
             println!("Running scheduled benchmark for {}...", registry.name());
 
             match load_mirrors(registry) {

@@ -178,8 +178,13 @@ ayeneh-cli report all
 Run the scheduler in the foreground (one hour between completed cycles by default; stop it with Ctrl+C):
 
 ```bash
-ayeneh-cli schedule
+ayeneh-cli schedule pypi
+ayeneh-cli schedule npm
+ayeneh-cli schedule gradle
+ayeneh-cli schedule all
 ```
+
+`ayeneh-cli schedule` without a subcommand schedules all registries.
 
 ## Example Report
 

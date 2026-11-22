@@ -27,8 +27,11 @@ pub enum Commands {
         #[command(subcommand)]
         registry: Option<ReportCommand>,
     },
-    /// Continuously benchmark and save reports every hour.
-    Schedule,
+    /// Continuously benchmark and save reports (defaults to all registries).
+    Schedule {
+        #[command(subcommand)]
+        registry: Option<ReportCommand>,
+    },
     /// Install Python packages via PyPI mirrors, falling back to the next mirror on failure.
     Pip {
         #[command(subcommand)]
@@ -73,6 +76,17 @@ pub enum ReportCommand {
     Npm,
     /// Generate a Gradle/Maven report.
     Gradle,
+}
+
+impl ReportCommand {
+    fn registries(self) -> &'static [Registry] {
+        match self {
+            Self::All => &Registry::ALL,
+            Self::Pypi => &[Registry::PyPi],
+            Self::Npm => &[Registry::Npm],
+            Self::Gradle => &[Registry::Gradle],
+        }
+    }
 }
 
 #[derive(Subcommand)]
@@ -193,14 +207,11 @@ async fn run_reports(registries: &[Registry]) -> Result<(), Box<dyn std::error::
 pub async fn run_command(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
     match cli.command {
         Some(Commands::Run { registry }) => run_once(&registry).await,
-        Some(Commands::Report { registry }) => match registry.unwrap_or(ReportCommand::All) {
-            ReportCommand::All => run_reports(&Registry::ALL).await,
-            ReportCommand::Pypi => run_reports(&[Registry::PyPi]).await,
-            ReportCommand::Npm => run_reports(&[Registry::Npm]).await,
-            ReportCommand::Gradle => run_reports(&[Registry::Gradle]).await,
-        },
-        Some(Commands::Schedule) => {
-            scheduler::run().await;
+        Some(Commands::Report { registry }) => {
+            run_reports(registry.unwrap_or(ReportCommand::All).registries()).await
+        }
+        Some(Commands::Schedule { registry }) => {
+            scheduler::run_selected(registry.unwrap_or(ReportCommand::All).registries()).await;
             Ok(())
         }
         Some(Commands::Pip {

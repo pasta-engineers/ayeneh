@@ -169,8 +169,9 @@ entries, and the fastest reachable mirror. The report is serialized with
 
 ## Scheduler
 
-`scheduler.rs` runs an infinite loop: for each package manager (pypi, npm,
-then gradle), load mirrors, benchmark, and save a report. After all have run, it
+`scheduler.rs` runs an infinite loop: for each selected registry, load mirrors,
+benchmark, and save a report. By default it selects all registries (pypi, npm,
+then gradle). After all selected registries have run, it
 sleeps for `AYN_SCHEDULE_INTERVAL_SECS` seconds (default one hour, via
 `tokio::time::sleep`) and repeats. There is no cron
 integration or daemonization — the process must stay running in the
