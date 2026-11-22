@@ -2,27 +2,28 @@
 
 # Ayeneh
 
-A terminal tool that installs packages from mirrors, benchmarks, and reports results, all with both simple TUI and CLI.
+A terminal tool for installing packages through mirrors and benchmarking their performance, with a CLI and an interactive TUI.
 
 ## Supported Package Managers
 
 
 |Registry        |Package Manager        |
 |----------------|-----------------------|
-|PyPi|pip, uv|
+|PyPI|pip, uv|
 |npm |npm|
 |Gradle/Maven|gradle, mvn (Maven repositories)|
 
 
 ## Features
 
-- Install packages from mirrors. Switch to a different mirror if fails.
-- Benchmarks mirrors and ranks them by dowload speed.
+- Install packages through configured mirrors, falling back to the next mirror on failure.
+- Benchmark mirrors and rank them by average successful attempt time.
 - Interactive keyboard-only TUI built with `ratatui`.
 
 ## Installation
 
-Pickup desired binary from the [releases](https://github.com/pasta-engineers/ayeneh/releases)
+Download the desired binary from [releases](https://github.com/pasta-engineers/ayeneh/releases). You will also need the three registry JSON files from this repository's `data/` directory; place them in `./data` relative to your working directory, or point `AYN_DATA_DIR` at their directory.
+
 Or build from source:
 
 - Make sure you have Rust (stable) installed via [rustup](https://rustup.rs)
@@ -34,6 +35,22 @@ make
 # or
 cargo build
 ```
+
+The binaries are in `target/debug/` (`target/release/` for a release build). Run them by path, or add that directory to your `PATH`. On Windows the binary names end in `.exe`.
+
+Package installation requires the corresponding package manager: Python with pip, npm, uv, Gradle, or Maven. For project commands, Ayeneh tries `./gradlew` or `./mvnw` before `gradle` or `mvn` on `PATH`.
+
+## Quick start
+
+From the repository root after building from source:
+
+```bash
+./target/debug/ayeneh-cli run pypi
+./target/debug/ayeneh-cli pip install requests
+./target/debug/ayeneh-tui
+```
+
+From another directory, set `AYN_DATA_DIR` to the absolute path of the repository's `data` directory. The remaining examples assume the binaries are on `PATH` and the data directory is configured.
 
 ## Usage
 
@@ -52,20 +69,7 @@ ayeneh-cli npm --help
 ayeneh-cli gradle --help
 ```
 
-### Environment Variables
-
-Runtime behavior can be tuned without rebuilding:
-
-| Variable                          | Meaning                                | Default                   |
-|-----------------------------------|----------------------------------------|---------------------------|
-| `AYN_DATA_DIR`                    | Directory holding the registry JSON files | `./data` |
-| `AYN_REPORTS_DIR`                 | Directory for generated reports        | auto-detected `reports/`  |
-| `AYN_TIMEOUT`                | Per-attempt HTTP timeout (seconds)     | `15`                      |
-| `AYN_ATTEMPTS`                    | Benchmark attempts per mirror          | `3`                       |
-| `AYN_SCHEDULE_INTERVAL_SECS`      | Delay between scheduler cycles (seconds) | `3600`                    |
-
-The numeric variables fall back to their default if unset or given a
-non-numeric, zero, or negative value.
+### Interactive TUI
 
 Launch the TUI:
 ```bash
@@ -73,11 +77,19 @@ ayeneh-tui
 ```
 ![TUI screenshot](./docs/tui.png)
 
-In TUI, you can:
-- Run benchmarks
-- Reorder mirrors based on benchmark results, so faster mirrors are listed first in installation processes
-- Add/remove mirrors manually
-CLI features are available in TUI as well.
+| Key | Action |
+| --- | --- |
+| Up / Down | Cycle registries or select a mirror in the results section |
+| Shift+Tab | Switch between registries and results |
+| Enter | Benchmark the selected registry, or the selected mirror in results |
+| `a` | Add a mirror URL; Enter saves and Esc cancels |
+| `d` | Delete the selected mirror in results |
+| `s` | Save the benchmark-sorted mirror order |
+| `q` / Ctrl+C | Quit |
+
+Adding or deleting a mirror immediately updates the selected registry's JSON file. Benchmarking sorts the displayed results; press `s` to persist that order for future installations. The TUI binary also accepts CLI commands as arguments.
+
+### CLI
 
 Install python packages from mirrors:
 
@@ -94,6 +106,12 @@ Install npm packages from mirrors:
 
 ```bash
 ayeneh-cli npm install <package>
+```
+
+Add a Python dependency to a uv project:
+
+```bash
+ayeneh-cli uv add requests
 ```
 
 Run Gradle dependency-resolving project commands through the configured Maven
@@ -144,13 +162,15 @@ ayeneh-cli run npm
 ayeneh-cli run gradle
 ```
 
+Each attempt resolves and downloads a real sample package, then deletes its temporary file; it does not install the package. Results show the average elapsed time of successful attempts, including resolution and download, and the percentage of attempts that succeeded. A mirror's metadata may point the archive download to another host. Results therefore reflect the full request path rather than throughput alone.
+
 Generate a JSON report for all package managers:
 
 ```bash
 ayeneh-cli report
 ```
 
-Run the hourly scheduler (keeps benchmarking forever):
+Run the scheduler in the foreground (one hour between completed cycles by default; stop it with Ctrl+C):
 
 ```bash
 ayeneh-cli schedule
@@ -162,7 +182,7 @@ ayeneh-cli schedule
 
 ```json
 {
-  "package_manager": "pypi",
+  "registry": "pypi",
   "generated_at": "2026-07-12T14:30:00+00:00",
   "results": [
     { "mirror": "https://pypi.org/simple/", "latency": 120, "success": 100.0 },
@@ -171,6 +191,20 @@ ayeneh-cli schedule
   "best": "https://pypi.org/simple/"
 }
 ```
+
+`latency` is in milliseconds, `success` is a percentage, and `best` is `null` if no mirror succeeds. Reports use a local timestamp in their filename with minute precision. Reports saved within the same minute use the same filename and overwrite one another, including reports for different registries.
+
+## Configuration
+
+| Variable | Meaning | Default |
+| --- | --- | --- |
+| `AYN_DATA_DIR` | Directory holding the registry JSON files | `./data` |
+| `AYN_REPORTS_DIR` | Directory for generated reports | Auto-detected `reports/` |
+| `AYN_TIMEOUT` | HTTP timeout in seconds | `15` |
+| `AYN_ATTEMPTS` | Benchmark attempts per mirror | `3` |
+| `AYN_SCHEDULE_INTERVAL_SECS` | Delay between scheduler cycles in seconds | `3600` |
+
+Numeric variables fall back to their defaults when unset, non-numeric, zero, or negative.
 
 ## Mirror Lists
 
@@ -224,6 +258,7 @@ docker run --rm ayeneh-cli ayeneh-cli pip install requests
 
 ```dockerfile
 FROM ayeneh-cli
+COPY requirements.txt .
 RUN ayeneh-cli pip install -r requirements.txt
 ```
 
@@ -245,3 +280,16 @@ docker run --rm ayeneh-cli-npm ayeneh-cli npm install lodash
 FROM ayeneh-cli-npm
 RUN ayeneh-cli npm install lodash express
 ```
+
+To retain reports after a container exits, mount a host directory:
+
+```bash
+mkdir -p reports
+docker run --rm -v "$(pwd)/reports:/app/reports" ayeneh-cli ayeneh-cli report
+```
+
+## Troubleshooting
+
+- **Registry file not found:** Run from a directory containing `data/`, or set `AYN_DATA_DIR` to the directory containing the registry JSON files.
+- **No mirrors reachable:** Check network and DNS connectivity, the mirror URLs and sample package in the registry JSON, and the timeout. A mirror may also lack the package or return unusable metadata.
+- **Package manager not found:** Install the relevant tool and make it available on `PATH`; for Gradle or Maven project commands, check that the project wrapper is executable or install the corresponding tool.
